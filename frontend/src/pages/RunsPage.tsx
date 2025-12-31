@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { runsApi, RunResponse } from "@/api/runs";
 import { systemApi, RateLimitStatus, ApiKeyStatus } from "@/api/system";
+import { spacesApi } from "@/api/spaces";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,15 @@ export default function RunsPage() {
     },
   });
 
+  // Anki初期化（デッキ＆Note Type作成）
+  const initializeAnkiMutation = useMutation({
+    mutationFn: () => spacesApi.initializeSpace(spaceId!),
+    onSuccess: (data) => {
+      // 前提条件を再チェック
+      queryClient.invalidateQueries({ queryKey: ["prerequisites", spaceId] });
+    },
+  });
+
   const { data: currentRun, isLoading: isPolling } = useRunPolling({
     spaceId: spaceId!,
     runId: currentRunId,
@@ -67,7 +77,7 @@ export default function RunsPage() {
     queryKey: ["api-key-status"],
     queryFn: () => systemApi.getApiKeyStatus(),
     enabled: !!spaceId && !currentRunId,
-    refetchInterval: 10000, // 10秒ごとに更新
+    // ポーリング無効化: API呼び出しを削減
   });
 
   // 前提条件チェック
@@ -75,7 +85,7 @@ export default function RunsPage() {
     queryKey: ["prerequisites", spaceId],
     queryFn: () => runsApi.checkPrerequisites(spaceId!),
     enabled: !!spaceId && !currentRunId,
-    refetchInterval: 10000, // 10秒ごとに更新
+    // ポーリング無効化: API呼び出しを削減
   });
 
   const handleCreateRun = () => {
@@ -245,6 +255,34 @@ export default function RunsPage() {
                       <li key={idx}>{warning}</li>
                     ))}
                   </ul>
+                  {/* デッキが存在しない場合、初期化ボタンを表示 */}
+                  {prerequisites.warnings.some(w => w.includes("does not exist")) && (
+                    <Button
+                      onClick={() => initializeAnkiMutation.mutate()}
+                      disabled={initializeAnkiMutation.isPending}
+                      className="mt-3"
+                      size="sm"
+                    >
+                      {initializeAnkiMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          初期化中...
+                        </>
+                      ) : (
+                        "Ankiリソースを初期化"
+                      )}
+                    </Button>
+                  )}
+                  {initializeAnkiMutation.isSuccess && (
+                    <div className="mt-2 p-2 bg-green-100 border border-green-200 rounded text-sm text-green-800">
+                      ✅ {initializeAnkiMutation.data.message}
+                    </div>
+                  )}
+                  {initializeAnkiMutation.isError && (
+                    <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-800">
+                      ❌ エラー: {(initializeAnkiMutation.error as Error)?.message || "初期化に失敗しました"}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -20,7 +20,10 @@
     "clsx": "^2.0.0",
     "tailwind-merge": "^2.1.0",
     "lucide-react": "^0.294.0",
-    "date-fns": "^2.30.0"
+    "date-fns": "^2.30.0",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-label": "^2.0.2",
+    "class-variance-authority": "^0.7.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

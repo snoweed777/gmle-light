@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import List
 
+import yaml
 from fastapi import APIRouter, HTTPException, status
 
 from gmle.app.adapters.anki_client import (
@@ -16,10 +19,12 @@ from gmle.app.api.rest.errors import raise_not_found
 from gmle.app.api.rest.models import (
     AnkiInitializeResponse,
     AnkiStatusResponse,
+    CreateSpaceRequest,
     SpaceInfo,
 )
 from gmle.app.config.env_paths import get_spaces_config_dir
 from gmle.app.config.loader import load_config
+from gmle.app.config.merger import defaults
 from gmle.app.infra.errors import AnkiError
 from gmle.app.infra.logger import get_logger, log_exception
 
@@ -70,6 +75,81 @@ async def list_spaces() -> List[SpaceInfo]:
     
     logger.debug(f"Loaded {len(spaces)} space(s) successfully")
     return spaces
+
+
+@router.post("", response_model=SpaceInfo, status_code=201)
+async def create_space(request: CreateSpaceRequest) -> SpaceInfo:
+    """Create a new space."""
+    space_id = request.space_id
+    
+    # Validate space_id format (alphanumeric, hyphens, underscores only)
+    if not re.match(r'^[a-zA-Z0-9_-]+$', space_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Space ID must contain only alphanumeric characters, hyphens, and underscores",
+        )
+    
+    # Check if space already exists
+    spaces_dir = get_spaces_config_dir()
+    space_config_path = spaces_dir / f"{space_id}.yaml"
+    
+    if space_config_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Space '{space_id}' already exists",
+        )
+    
+    try:
+        # Create spaces directory if it doesn't exist
+        spaces_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get default params from merger
+        default_config = defaults()
+        
+        # Create space configuration
+        space_config = {
+            "space_id": space_id,
+            "deck_bank": f"GMLE::Bank::{space_id}",
+            "data_root": f"data/{space_id}",
+            "sources_root": f"sources/{space_id}",
+            "params": default_config["params"],
+        }
+        
+        # Write YAML file
+        with open(space_config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(space_config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        
+        logger.info(f"Created space configuration: {space_config_path}")
+        
+        # Create data and sources directories
+        # Get the base paths (assuming they're relative to /app in Docker)
+        from gmle.app.config.env_paths import get_data_dir, get_sources_dir
+        
+        data_dir = get_data_dir() / space_id
+        sources_dir = get_sources_dir() / space_id
+        
+        data_dir.mkdir(parents=True, exist_ok=True)
+        sources_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"Created directories: {data_dir}, {sources_dir}")
+        
+        # Return created space info
+        return SpaceInfo(
+            space_id=space_id,
+            deck_bank=space_config["deck_bank"],
+            data_root=str(space_config["data_root"]),
+            sources_root=str(space_config["sources_root"]),
+        )
+    
+    except Exception as e:
+        # Cleanup on failure
+        if space_config_path.exists():
+            space_config_path.unlink()
+        log_exception(logger, f"Failed to create space '{space_id}'", e, space_id=space_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create space: {str(e)}",
+        )
 
 
 @router.get("/{space_id}", response_model=SpaceInfo)

@@ -17,6 +17,13 @@ class SpaceInfo(BaseModel):
     sources_root: str = Field(..., description="Sources root path")
 
 
+class CreateSpaceRequest(BaseModel):
+    """Create space request."""
+
+    space_id: str = Field(..., description="Space ID (alphanumeric, hyphens, underscores only)", min_length=1, max_length=50)
+    description: Optional[str] = Field(None, description="Optional description")
+
+
 class AnkiStatusResponse(BaseModel):
     """Anki resources status response."""
 

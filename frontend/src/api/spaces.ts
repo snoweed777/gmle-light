@@ -21,9 +21,19 @@ export interface AnkiInitializeResponse {
   message: string;
 }
 
+export interface CreateSpaceRequest {
+  space_id: string;
+  description?: string;
+}
+
 export const spacesApi = {
   list: async (): Promise<SpaceInfo[]> => {
     const response = await apiClient.get<SpaceInfo[]>("/spaces");
+    return response.data;
+  },
+
+  create: async (request: CreateSpaceRequest): Promise<SpaceInfo> => {
+    const response = await apiClient.post<SpaceInfo>("/spaces", request);
     return response.data;
   },
 
