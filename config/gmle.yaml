@@ -14,7 +14,7 @@ api:
 http:
   max_retries: 3
   retry_backoff_base: 2
-  timeout: 30
+  timeout: 120
 ingest:
   excerpt_max: 800
   excerpt_min: 200
@@ -71,16 +71,18 @@ params:
 prompts:
   stage1_extract:
     description: 'Stage 1: 事実抽出プロンプト'
-    template: "以下のテキストから重要な事実を抽出してください。\n各事実には、元のテキストからの引用（support_quote）を必ず含めてください。\n\
-      \n【テキスト】\n{excerpt}\n\n【出力形式】\nJSONフォーマットで返してください：\n{{\n  \"facts\": [\n   \
-      \ {{\"id\": \"f1\", \"text\": \"事実の内容\", \"support_quote\": \"元のテキストからの引用\"\
-      }}\n  ]\n}}\n"
+    template: "以下のテキストから重要な事実を日本語で抽出してください。\n各事実には、元のテキストからの引用（support_quote）を必ず含めてください。\n\
+      \n重要: すべての出力は日本語で記述してください。\n\n【テキスト】\n{excerpt}\n\n【出力形式】\nJSONフォーマットで返してください：\n\
+      {{\n  \"facts\": [\n    {{\"id\": \"f1\", \"text\": \"事実の内容（日本語）\", \"support_quote\": \"元のテキストからの引用\"\
+      }}\n  ]\n}}\n\n出力例：\n{{\n  \"facts\": [\n    {{\"id\": \"f1\", \"text\": \"Pythonは1991年にGuido van Rossumによって開発されたプログラミング言語です\", \"support_quote\": \"Python was created by Guido van Rossum in 1991\"}}\n  ]\n}}\n"
   stage2_build_mcq:
     description: 'Stage 2: MCQ生成プロンプト'
-    template: "以下の事実から多肢選択問題（MCQ）を日本語で作成してください。\n\n【事実】\n{facts}\n\n【出力形式】\nJSONフォーマットで返してください：\n\
-      {{\n  \"question\": \"問題文\",\n  \"choices\": [\"A: 選択肢1\", \"B: 選択肢2\", \"C:\
-      \ 選択肢3\", \"D: 選択肢4\"],\n  \"answer\": \"A\",\n  \"rationale\": {{\n    \"text\"\
-      : \"解説文\",\n    \"quote\": \"元のテキストからの引用（100文字以内）\"\n  }}\n}}\n"
+    template: "以下の事実から多肢選択問題（MCQ）を作成してください。\n\n重要な指示:\n- すべての問題文、選択肢、解説は必ず日本語で記述してください\n\
+      - 英語や他の言語は使用しないでください\n- 日本語として自然な表現を使用してください\n\n【事実】\n{facts}\n\n【出力形式】\n\
+      JSONフォーマットで返してください：\n{{\n  \"question\": \"問題文（日本語）\",\n  \"choices\": [\"A: 選択肢1（日本語）\", \"B: 選択肢2（日本語）\", \"C: 選択肢3（日本語）\", \"D: 選択肢4（日本語）\"],\n\
+      \  \"answer\": \"A\",\n  \"rationale\": {{\n    \"text\": \"解説文（日本語）\",\n    \"quote\": \"元のテキストからの引用（100文字以内）\"\n  }}\n}}\n\n\
+      出力例：\n{{\n  \"question\": \"Pythonが最初にリリースされた年はいつですか？\",\n  \"choices\": [\"A: 1989年\", \"B: 1991年\", \"C: 1995年\", \"D: 2000年\"],\n\
+      \  \"answer\": \"B\",\n  \"rationale\": {{\n    \"text\": \"Pythonは1991年にGuido van Rossumによって最初にリリースされました\",\n    \"quote\": \"Python was created by Guido van Rossum in 1991\"\n  }}\n}}\n"
 rate_limit:
   burst_limit: 1
   call_type_limits:
@@ -89,9 +91,9 @@ rate_limit:
       requests_per_hour: 100
       requests_per_minute: 60
     mcq_generation:
-      requests_per_day: 360
-      requests_per_hour: 15
-      requests_per_minute: 1
+      requests_per_day: 800
+      requests_per_hour: 40
+      requests_per_minute: 10
     prerequisite_check:
       requests_per_day: 50
       requests_per_hour: 100

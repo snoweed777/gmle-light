@@ -15,6 +15,11 @@ services:
       - ./data:/app/data
       # .env file for API keys
       - ./.env:/app/.env
+      # Source code (for development - changes reflect immediately)
+      - ./gmle:/app/gmle
+      - ./frontend:/app/frontend
+      # Protect node_modules from being overwritten by host mount
+      - /app/frontend/node_modules
     environment:
       - PYTHONUNBUFFERED=1
       - GMLE_CONFIG_DIR=/app/config
