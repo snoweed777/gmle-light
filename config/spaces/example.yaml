@@ -1,13 +1,19 @@
-# Space設定ファイルのテンプレート
-# このファイルをコピーして <space_id>.yaml を作成してください
-# cp config/spaces/example.yaml config/spaces/your-space-id.yaml
-
-space_id: your-space-id
-deck_bank: "GMLE::Bank::your-space-id"
-data_root: "data/your-space-id"
-sources_root: "sources/your-space-id"
+data_root: data/example
+deck_bank: GMLE::Bank::example
 params:
-  total: 30          # 1日に学習するカードの総数
-  new_total: 10      # 1日に追加する新規カードの数
-  maintain_total: 20 # 1日に復習するカードの数
-
+  coverage: 6
+  domain_cap_steps:
+  - 6
+  - 7
+  - 8
+  - 9999
+  excerpt_max: 800
+  excerpt_min: 200
+  improve: 7
+  maintain_total: 20
+  new_total: 1
+  rationale_quote_max: 100
+  reward_cap: 3
+  total: 30
+sources_root: sources/example
+space_id: example

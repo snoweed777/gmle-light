@@ -7,7 +7,6 @@ anki:
   note_type_name: GMLE_MCQA
 api:
   anki:
-    # Docker内からホストMacのAnkiConnectに接続
     connect_url: http://host.docker.internal:8765
     connect_version: 6
   readwise:
@@ -46,7 +45,7 @@ llm:
       - mixtral-8x7b-32768
       - gemma-7b-it
       - gemma2-9b-it
-      default_model: llama-3.1-8b-instant  # より軽量で高速
+      default_model: llama-3.3-70b-versatile
 lock:
   stale_seconds: 3600
 logging:
@@ -83,16 +82,16 @@ prompts:
       \ 選択肢3\", \"D: 選択肢4\"],\n  \"answer\": \"A\",\n  \"rationale\": {{\n    \"text\"\
       : \"解説文\",\n    \"quote\": \"元のテキストからの引用（100文字以内）\"\n  }}\n}}\n"
 rate_limit:
-  burst_limit: 1  # 1秒間に最大1回（requests_per_second=0.017と整合性を取る）
+  burst_limit: 1
   call_type_limits:
     api_key_check:
       requests_per_day: 50
       requests_per_hour: 100
       requests_per_minute: 60
     mcq_generation:
-      requests_per_day: 360  # Groq無料枠: 月間14,400 / 30日 = 480、安全マージン25%で360
-      requests_per_hour: 15  # 安全マージン25%で15
-      requests_per_minute: 1  # 約1分に1回（維持）
+      requests_per_day: 360
+      requests_per_hour: 15
+      requests_per_minute: 1
     prerequisite_check:
       requests_per_day: 50
       requests_per_hour: 100
@@ -103,9 +102,9 @@ rate_limit:
   provider_daily_limits:
     cohere: 900
     gemini: 1400
-    groq: 360  # 安全マージン25%（月間10,800回使用、3,600回の余裕）
-  requests_per_day: 360  # Groq無料枠: 月間14,400 / 30日 = 480、安全マージン25%で360
-  requests_per_hour: 15  # 安全マージン25%で15
-  requests_per_minute: 1  # 約1分に1回（維持）
-  requests_per_second: 0.014  # 約71秒に1回（より保守的）
+    groq: 360
+  requests_per_day: 360
+  requests_per_hour: 15
+  requests_per_minute: 1
+  requests_per_second: 0.014
 version: '1.0'
