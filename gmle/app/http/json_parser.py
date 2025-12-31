@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 
 def extract_json_from_text(text: str) -> str | None:
@@ -54,7 +54,7 @@ def parse_llm_response(response: Any) -> Dict[str, Any]:
             json_str = extract_json_from_text(text)
             if json_str:
                 try:
-                    return json.loads(json_str)
+                    return cast(Dict[str, Any], json.loads(json_str))
                 except (json.JSONDecodeError, ValueError):
                     pass
             return response
@@ -67,7 +67,7 @@ def parse_llm_response(response: Any) -> Dict[str, Any]:
                 json_str = extract_json_from_text(content)
                 if json_str:
                     try:
-                        return json.loads(json_str)
+                        return cast(Dict[str, Any], json.loads(json_str))
                     except (json.JSONDecodeError, ValueError):
                         pass
                 # Return in a format compatible with our system
@@ -87,7 +87,7 @@ def parse_llm_response(response: Any) -> Dict[str, Any]:
                     json_str = extract_json_from_text(text)
                     if json_str:
                         try:
-                            return json.loads(json_str)
+                            return cast(Dict[str, Any], json.loads(json_str))
                         except (json.JSONDecodeError, ValueError):
                             pass
                     return {"text": text}
@@ -100,7 +100,7 @@ def parse_llm_response(response: Any) -> Dict[str, Any]:
         json_str = extract_json_from_text(response)
         if json_str:
             try:
-                return json.loads(json_str)
+                return cast(Dict[str, Any], json.loads(json_str))
             except (json.JSONDecodeError, ValueError):
                 pass
         return {"text": response}
