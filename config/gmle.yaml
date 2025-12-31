@@ -77,7 +77,7 @@ prompts:
       }}\n  ]\n}}\n"
   stage2_build_mcq:
     description: 'Stage 2: MCQ生成プロンプト'
-    template: "以下の事実から多肢選択問題（MCQ）を作成してください。\n\n【事実】\n{facts}\n\n【出力形式】\nJSONフォーマットで返してください：\n\
+    template: "以下の事実から多肢選択問題（MCQ）を日本語で作成してください。\n\n【事実】\n{facts}\n\n【出力形式】\nJSONフォーマットで返してください：\n\
       {{\n  \"question\": \"問題文\",\n  \"choices\": [\"A: 選択肢1\", \"B: 選択肢2\", \"C:\
       \ 選択肢3\", \"D: 選択肢4\"],\n  \"answer\": \"A\",\n  \"rationale\": {{\n    \"text\"\
       : \"解説文\",\n    \"quote\": \"元のテキストからの引用（100文字以内）\"\n  }}\n}}\n"
