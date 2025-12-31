@@ -196,5 +196,6 @@ def get_llm_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 def get_prompts_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Get prompts configuration."""
     cfg = _get_config_with_fallback(config)
-    return cfg.get("prompts", {})
+    result: Dict[str, Any] = cfg.get("prompts", {})
+    return result
 

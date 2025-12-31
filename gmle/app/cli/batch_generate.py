@@ -8,7 +8,6 @@ import time
 import yaml
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
 
 from gmle.app.config.paths import resolve_paths
 from gmle.app.config.space_loader import load_space_yaml
@@ -225,7 +224,7 @@ def batch_generate(
                 # レートリミットエラーは予期されるものなので、優雅に処理
                 if "Hourly limit reached" in error_msg or "Rate limit" in error_msg:
                     wait_seconds = 3600
-                    print(f"⏸️  Rate limit reached, waiting 1 hour...")
+                    print("⏸️  Rate limit reached, waiting 1 hour...")
                     logger.info(f"Batch {batch_num} paused due to rate limit, waiting 1 hour")
                     
                     # 毎秒カウントダウン表示
