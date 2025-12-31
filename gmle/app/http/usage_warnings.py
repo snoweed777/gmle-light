@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import List
 
 from gmle.app.http.usage_tracker import get_usage_tracker
 

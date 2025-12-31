@@ -7,14 +7,7 @@ from typing import NoReturn
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
-from gmle.app.infra.errors import (
-    AnkiError,
-    ConfigError,
-    DegradeTrigger,
-    GMLEError,
-    InfraError,
-    SOTError,
-)
+from gmle.app.infra.errors import GMLEError
 
 
 def _get_status_code_for_error(error: GMLEError) -> int:

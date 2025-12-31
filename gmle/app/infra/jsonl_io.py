@@ -37,7 +37,7 @@ def read_jsonl(path: Path) -> List[Dict[str, Any]]:
                     continue
                 try:
                     records.append(orjson.loads(line))
-                except orjson.JSONDecodeError as exc:
+                except orjson.JSONDecodeError:
                     logger.warning(
                         f"Failed to parse JSONL line {line_num}",
                         extra={

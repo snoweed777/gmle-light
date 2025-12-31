@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
-
 from fastapi import APIRouter, HTTPException
 
 from gmle.app.api.rest.models import GlobalConfigResponse, GlobalConfigUpdateRequest
@@ -45,7 +43,7 @@ async def update_global_config(
     request: GlobalConfigUpdateRequest,
 ) -> GlobalConfigResponse:
     """Update global configuration."""
-    config = _load_global_config()
+    config = load_global_yaml_config()
 
     # Update params
     if request.params:
