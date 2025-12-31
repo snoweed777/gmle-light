@@ -49,17 +49,6 @@ api:
     # Docker内からホストMacのAnkiConnectに接続
     connect_url: "http://host.docker.internal:8765"
     connect_version: 6
-  
-  # 内部API設定（将来のマイクロサービス化対応）
-  generation:
-    microservice:
-      enabled: false
-      url: "http://localhost:8001"
-  
-  ingest:
-    microservice:
-      enabled: false
-      url: "http://localhost:8002"
 
 # Anki設定
 anki:

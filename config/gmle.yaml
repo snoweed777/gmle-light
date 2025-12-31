@@ -10,14 +10,6 @@ api:
     # Docker内からホストMacのAnkiConnectに接続
     connect_url: http://host.docker.internal:8765
     connect_version: 6
-  generation:
-    microservice:
-      enabled: false
-      url: http://localhost:8001
-  ingest:
-    microservice:
-      enabled: false
-      url: http://localhost:8002
   readwise:
     api_url: https://readwise.io/api/v2/highlights/
 http:

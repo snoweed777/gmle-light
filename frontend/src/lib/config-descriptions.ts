@@ -69,30 +69,6 @@ export const apiDescriptions: Record<string, Record<string, FieldDescription>> =
       recommended: 6,
     },
   },
-  generation: {
-    microservice: {
-      enabled: {
-        description: "生成処理をマイクロサービス化",
-        recommended: false,
-      },
-      url: {
-        description: "生成マイクロサービスのURL",
-        recommended: "http://localhost:8001",
-      },
-    },
-  },
-  ingest: {
-    microservice: {
-      enabled: {
-        description: "取り込み処理をマイクロサービス化",
-        recommended: false,
-      },
-      url: {
-        description: "取り込みマイクロサービスのURL",
-        recommended: "http://localhost:8002",
-      },
-    },
-  },
 };
 
 export const loggingDescriptions: Record<string, FieldDescription> = {

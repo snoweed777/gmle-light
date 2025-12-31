@@ -7,11 +7,8 @@ import typer
 from gmle.app.phase.runner import run
 from gmle.app.phase.steps.selfcheck_start import execute as selfcheck_start
 from gmle.app.config.loader import load_config
-from .audit import audit_cmd
 from .init import init_cmd
 from .ingest import ingest_cmd
-from .lint_queue import lint_queue_cmd
-from .repair import repair_cmd
 from .system import app as system_app
 
 app = typer.Typer(help="GMLE+ CLI")
@@ -48,24 +45,6 @@ def selfcheck(space: str = typer.Option(None, "--space", help="Space ID")) -> No
 def init(space: str = typer.Option(..., "--space", help="Space ID")) -> None:
     """Initialize space directories."""
     init_cmd(space)
-
-
-@app.command()
-def audit(space: str = typer.Option(..., "--space", help="Space ID")) -> None:
-    """Audit space data."""
-    audit_cmd(space)
-
-
-@app.command(name="lint-queue")
-def lint_queue(space: str = typer.Option(..., "--space", help="Space ID")) -> None:
-    """Lint queue.jsonl."""
-    lint_queue_cmd(space)
-
-
-@app.command()
-def repair(space: str = typer.Option(..., "--space", help="Space ID")) -> None:
-    """Repair duplicate IDs and multi-card issues."""
-    repair_cmd(space)
 
 
 @app.command()
