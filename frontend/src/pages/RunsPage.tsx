@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { runsApi, RunResponse } from "@/api/runs";
-import { systemApi, RateLimitStatus, ApiKeyStatus } from "@/api/system";
+import { systemApi, RateLimitStatus } from "@/api/system";
 import { spacesApi } from "@/api/spaces";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,14 +72,6 @@ export default function RunsPage() {
     refetchInterval: currentRun?.status === "running" ? 2000 : false, // 2秒ごとに更新
   });
 
-  // APIキー状態を取得
-  const { data: apiKeyStatus } = useQuery({
-    queryKey: ["api-key-status"],
-    queryFn: () => systemApi.getApiKeyStatus(),
-    enabled: !!spaceId && !currentRunId,
-    // ポーリング無効化: API呼び出しを削減
-  });
-
   // 前提条件チェック
   const { data: prerequisites } = useQuery({
     queryKey: ["prerequisites", spaceId],
@@ -134,8 +126,7 @@ export default function RunsPage() {
               createRunMutation.isPending ||
               !!currentRunId ||
               !canCreateRun ||
-              (prerequisites && !prerequisites.all_passed) ||
-              (apiKeyStatus && (!apiKeyStatus.valid || !apiKeyStatus.has_quota))
+              (prerequisites && !prerequisites.all_passed)
             }
           >
             {createRunMutation.isPending ? (
@@ -155,75 +146,6 @@ export default function RunsPage() {
           title="Failed to create run"
           message={createRunMutation.error?.message || "Unknown error"}
         />
-      )}
-
-      {/* APIキー状態表示 */}
-      {apiKeyStatus && (
-        <Card className={`mb-6 ${
-          !apiKeyStatus.valid || !apiKeyStatus.has_quota
-            ? "border-red-200 bg-red-50"
-            : apiKeyStatus.key_type === "trial"
-            ? "border-yellow-200 bg-yellow-50"
-            : "border-blue-200 bg-blue-50"
-        }`}>
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${
-              !apiKeyStatus.valid || !apiKeyStatus.has_quota
-                ? "text-red-800"
-                : apiKeyStatus.key_type === "trial"
-                ? "text-yellow-800"
-                : "text-blue-800"
-            }`}>
-              {!apiKeyStatus.valid || !apiKeyStatus.has_quota ? (
-                <XCircle className="h-5 w-5" />
-              ) : (
-                <AlertCircle className="h-5 w-5" />
-              )}
-              APIキー状態
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">状態</span>
-                <Badge
-                  variant={
-                    !apiKeyStatus.valid || !apiKeyStatus.has_quota
-                      ? "destructive"
-                      : "default"
-                  }
-                >
-                  {!apiKeyStatus.valid
-                    ? "無効"
-                    : !apiKeyStatus.has_quota
-                    ? "クォータなし"
-                    : apiKeyStatus.key_type === "trial"
-                    ? "Trial (制限あり)"
-                    : "利用可能"}
-                </Badge>
-              </div>
-              {apiKeyStatus.key_type && (
-                <div className="text-sm">
-                  <span className="font-medium">タイプ:</span>{" "}
-                  {apiKeyStatus.key_type === "trial" ? "Trial" : "Production"}
-                </div>
-              )}
-              {apiKeyStatus.error && (
-                <div className="text-sm text-red-700">
-                  <span className="font-medium">エラー:</span> {apiKeyStatus.error}
-                </div>
-              )}
-              {!apiKeyStatus.has_quota && 
-               apiKeyStatus.error && 
-               !apiKeyStatus.error.includes("not implemented") && (
-                <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-800">
-                  <p className="font-medium mb-1">⚠️ 月次制限に到達しています</p>
-                  <p>Production APIキーへのアップグレード、または制限リセット（月初）まで待機してください。</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* 前提条件チェック結果表示 */}

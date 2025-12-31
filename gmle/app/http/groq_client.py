@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from typing import Any, Dict
 
 from dotenv import load_dotenv
@@ -14,8 +15,13 @@ from gmle.app.infra.errors import InfraError
 # Load .env file
 load_dotenv()
 
+# Cache for API key validation results
+# Format: {api_key_hash: {"result": {...}, "timestamp": float}}
+_api_key_check_cache: Dict[str, Dict[str, Any]] = {}
+_API_KEY_CHECK_CACHE_TTL = 300  # 5 minutes
 
-def _check_api_key_status_impl(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+
+def _check_api_key_status_impl(config: Dict[str, Any] | None = None, force_check: bool = False) -> Dict[str, Any]:
     """Internal implementation of API key check (without rate limiting)."""
     llm_config = get_llm_config(config)
     provider_config = llm_config.get("provider_config", {})
@@ -30,6 +36,28 @@ def _check_api_key_status_impl(config: Dict[str, Any] | None = None) -> Dict[str
             "key_type": None,
             "has_quota": False,
         }
+    
+    # Check cache if not forcing a fresh check
+    if not force_check:
+        import hashlib
+        api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+        cached = _api_key_check_cache.get(api_key_hash)
+        if cached:
+            cache_age = time.time() - cached["timestamp"]
+            if cache_age < _API_KEY_CHECK_CACHE_TTL:
+                return cached["result"]
+    
+    # Helper function to cache result
+    import hashlib
+    api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+    
+    def cache_result(result: Dict[str, Any]) -> Dict[str, Any]:
+        """Cache the result and return it."""
+        _api_key_check_cache[api_key_hash] = {
+            "result": result,
+            "timestamp": time.time(),
+        }
+        return result
     
     # Make a minimal test request
     import httpx
@@ -52,26 +80,26 @@ def _check_api_key_status_impl(config: Dict[str, Any] | None = None) -> Dict[str
         )
         
         if resp.status_code == 200:
-            return {
+            return cache_result({
                 "valid": True,
                 "error": None,
                 "key_type": "free",  # Groq free tier
                 "has_quota": True,
-            }
+            })
         elif resp.status_code == 401:
-            return {
+            return cache_result({
                 "valid": False,
                 "error": "Invalid API key",
                 "key_type": None,
                 "has_quota": False,
-            }
+            })
         elif resp.status_code == 429:
-            return {
+            return cache_result({
                 "valid": True,
                 "error": "Rate limit exceeded",
                 "key_type": "free",
                 "has_quota": False,
-            }
+            })
         else:
             # Get error details from response
             error_detail = f"API error: {resp.status_code}"
@@ -82,42 +110,39 @@ def _check_api_key_status_impl(config: Dict[str, Any] | None = None) -> Dict[str
             except Exception:
                 error_detail = f"{error_detail} - {resp.text[:200]}"
             
-            return {
+            return cache_result({
                 "valid": False,
                 "error": error_detail,
                 "key_type": None,
                 "has_quota": False,
-            }
+            })
     except Exception as e:
-        return {
+        return cache_result({
             "valid": False,
             "error": str(e),
             "key_type": None,
             "has_quota": False,
-        }
+        })
     finally:
         client.close()
 
 
-def check_api_key_status(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
-    """Check Groq API key status through unified gate."""
-    from gmle.app.http.api_gate import get_unified_api_gate
+def check_api_key_status(config: Dict[str, Any] | None = None, force_check: bool = False) -> Dict[str, Any]:
+    """Check Groq API key status.
     
-    llm_config = get_llm_config(config)
-    provider = llm_config.get("active_provider", "groq")
+    NOTE: This function bypasses rate limiting and uses caching (5 min TTL) to avoid
+    unnecessary API calls. Use force_check=True to force a fresh check.
     
-    # Only use gate if Groq is the active provider
-    if provider == "groq":
-        gate = get_unified_api_gate()
-        result: Any = gate.call(
-            call_type="api_key_check",
-            provider=provider,
-            func=_check_api_key_status_impl,
-            config=config,
-        )
-        return result  # type: ignore[no-any-return]
-    # Otherwise, try without gate (fallback)
-    return _check_api_key_status_impl(config)
+    Args:
+        config: Configuration dictionary
+        force_check: If True, bypass cache and make a fresh API call
+        
+    Returns:
+        Dict with keys: valid, error, key_type, has_quota
+    """
+    # Always call implementation directly with caching
+    # This avoids unnecessary rate limit consumption
+    return _check_api_key_status_impl(config, force_check=force_check)
 
 
 def _chat_completions_impl(payload: Dict[str, Any], config: Dict[str, Any] | None = None) -> Any:
