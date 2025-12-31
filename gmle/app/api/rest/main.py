@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from gmle.app.api.rest.errors import api_exception_handler
-from gmle.app.infra.errors import AnkiError, ConfigError, InfraError, SOTError
+from gmle.app.infra.errors import AnkiError, ConfigError, DegradeTrigger, InfraError, SOTError
 from .routes import config, global_config, ingest, items, llm_config, prompts_config, runs, spaces, system
 
 app = FastAPI(
@@ -31,6 +31,7 @@ app.add_exception_handler(ConfigError, api_exception_handler)
 app.add_exception_handler(InfraError, api_exception_handler)
 app.add_exception_handler(AnkiError, api_exception_handler)
 app.add_exception_handler(SOTError, api_exception_handler)
+app.add_exception_handler(DegradeTrigger, api_exception_handler)
 app.add_exception_handler(Exception, api_exception_handler)
 
 # Include routers

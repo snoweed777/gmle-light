@@ -68,10 +68,22 @@ http:
 # レート制限設定
 rate_limit:
   enabled: true
+  # レイヤー1: 即時制限
   requests_per_minute: 1
   requests_per_hour: 15
   requests_per_day: 360
   cooldown_seconds: 60
+  # レイヤー3: プロバイダー別厳格制限
+  provider_daily_limits:
+    groq: 360      # 無料枠: 月間14,400 / 30日 = 480、安全マージン25%で360
+    cohere: 900   # 無料枠の安全マージン
+    gemini: 1400  # 無料枠の安全マージン
+  # レイヤー3: 予測的制限
+  predictive_limit:
+    enabled: true
+    threshold: 0.9  # 90%に達したら警告
+  # レイヤー4: 緊急停止
+  emergency_stop_enabled: true
 
 # ログ設定
 logging:
@@ -102,6 +114,8 @@ params:
   excerpt_min: 200
   excerpt_max: 800
   rationale_quote_max: 100
+  # Degradeモード設定
+  degrade_min_notes: 30  # Degradeモードで必要な最小ノート数
 
 # プロンプトテンプレート設定
 prompts:

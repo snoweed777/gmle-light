@@ -15,9 +15,17 @@ from .base import IngestAPI
 class InternalIngestAPI(IngestAPI):
     """Internal implementation of Ingest API (monolithic)."""
     
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """Initialize Ingest API.
+        
+        Args:
+            config: Optional config dict
+        """
+        self.config = config
+    
     def ingest_readwise(self, space_id: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Ingest from Readwise using internal implementation."""
-        return _ingest_readwise(space_id, params=params)
+        return _ingest_readwise(space_id, params=params, config=self.config)
     
     def ingest_textfile(self, file_path: str, title: Optional[str] = None) -> List[Dict[str, Any]]:
         """Ingest from text file using internal implementation."""
@@ -64,5 +72,5 @@ def get_ingest_api(config: Optional[Dict[str, Any]] = None) -> IngestAPI:
         pass
     
     # Default: Return internal implementation
-    return InternalIngestAPI()
+    return InternalIngestAPI(config=config)
 

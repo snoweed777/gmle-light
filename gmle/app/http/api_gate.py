@@ -6,6 +6,8 @@ import threading
 from typing import Any, Callable, Dict, Optional
 
 from gmle.app.config.getter import get_rate_limit_config
+from gmle.app.http.emergency_stop import check_emergency_stop
+from gmle.app.http.predictive_limit import check_predictive_limit
 from gmle.app.http.rate_limiter import get_rate_limiter
 from gmle.app.http.usage_tracker import get_usage_tracker
 from gmle.app.infra.errors import InfraError
@@ -109,8 +111,33 @@ class UnifiedAPIGate:
         Raises:
             InfraError: If rate limit exceeded or other error
         """
+        # Layer 4: Emergency stop check
+        check_emergency_stop()
+        
         # Get limits for this call type
         limits = self._get_call_type_limits(call_type, provider, config)
+        rate_limit_config = get_rate_limit_config(config)
+        
+        # Layer 3: Provider-specific limit + predictive limit check
+        if call_type == "mcq_generation":
+            provider_limits = rate_limit_config.get("provider_daily_limits", {})
+            provider_limit = provider_limits.get(provider)
+            
+            if provider_limit:
+                # Check predictive limit
+                predictive_config = rate_limit_config.get("predictive_limit", {})
+                if predictive_config.get("enabled", True):
+                    threshold = predictive_config.get("threshold", 0.9)
+                    can_proceed, reason = check_predictive_limit(
+                        provider, provider_limit, threshold, config
+                    )
+                    if not can_proceed:
+                        raise InfraError(
+                            f"PREDICTIVE_LIMIT: {reason}",
+                            code="PREDICTIVE_LIMIT",
+                            user_message=f"予測される使用量が制限に近づいています: {reason}",
+                            retryable=False,
+                        )
         
         # Check daily/hourly limits via usage tracker
         # Only check if limits are not None
