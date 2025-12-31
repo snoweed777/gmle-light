@@ -78,6 +78,24 @@ def run(space_id: str, options: Dict[str, Any] | None = None) -> None:
         # Phase 5: Reconcile (skip in batch mode)
         if context["mode"] != "batch":
             _execute_phase(logger, 5, "reconcile", lambda ctx: reconcile(ctx["items"], ctx["deck_bank"], config=ctx), context)
+            
+            # Reload base_notes and base_cards after reconcile to include newly added MCQs
+            from gmle.app.adapters.anki_client import cards_info
+            from gmle.app.cycle.base_fetch import fetch_base_notes_info
+            
+            base_notes = fetch_base_notes_info(context["deck_bank"])
+            base_note_ids = [n["noteId"] for n in base_notes]
+            base_cards = []
+            if base_note_ids:
+                card_ids = []
+                for note in base_notes:
+                    card_ids.extend(note.get("cards", []))
+                if card_ids:
+                    base_cards = cards_info(card_ids)
+            
+            context["base_notes"] = base_notes
+            context["base_note_ids"] = base_note_ids
+            context["base_cards"] = base_cards
         
         # Phase 6-9: Only if selfcheck passed
         if context["selfcheck_passed"]:
