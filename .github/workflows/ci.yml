@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run ruff
+        run: ruff check gmle
+      - name: Run mypy
+        run: mypy gmle --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COHERE_API_KEY: dummy
+      GOOGLE_AI_API_KEY: dummy
+      GEMINI_API_KEY: dummy
+      GROQ_API_KEY: dummy
+      READWISE_TOKEN: dummy
+      ANKI_CONNECT_URL: http://127.0.0.1:8765
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          python -m pytest --cov=gmle --cov-report=term -v -m "not live" --tb=short -x --maxfail=1 --durations=10
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: gmle-light:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+

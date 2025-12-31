@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gmle"
 version = "0.1.0"
-description = "Guided Meta Learning Engine Plus"
+description = "GMLE Light - Lightweight MCQ Generator with Local Anki Integration"
 requires-python = ">=3.11"
 dependencies = [
     "typer>=0.9.0",
