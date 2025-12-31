@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from dotenv import load_dotenv
 
@@ -45,7 +45,7 @@ def _check_api_key_status_impl(config: Dict[str, Any] | None = None, force_check
         if cached:
             cache_age = time.time() - cached["timestamp"]
             if cache_age < _API_KEY_CHECK_CACHE_TTL:
-                return cached["result"]
+                return cast(Dict[str, Any], cached["result"])
     
     # Helper function to cache result
     import hashlib
