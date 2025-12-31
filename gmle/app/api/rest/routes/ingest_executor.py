@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Dict
 
 from gmle.app.api.internal.ingest_api import get_ingest_api
 from gmle.app.ingest.writer import write_ingest_log, write_queue
+from gmle.app.infra.logger import get_logger, log_exception
 from gmle.app.infra.time_id import today_str
 
 
@@ -17,7 +19,18 @@ def execute_ingest(
     title: str | None,
 ) -> None:
     """Execute ingest in background from file content."""
+    space_id = context.get("space")
+    logger = get_logger(space_id=space_id)
+    
     try:
+        logger.info("Starting ingest from uploaded file", extra={
+            "extra_fields": {
+                "ingest_id": ingest_id,
+                "filename": filename,
+                "title": title,
+            }
+        })
+        
         # Get ingest API instance
         ingest_api = get_ingest_api(config=context)
         
@@ -42,9 +55,22 @@ def execute_ingest(
             "filename": filename,
         })
         
+        logger.info("Ingest completed successfully", extra={
+            "extra_fields": {
+                "ingest_id": ingest_id,
+                "sources_count": len(sources),
+                "new_sources_count": len(new_sources),
+            }
+        })
+        
     except Exception as e:
-        # Log error (could be enhanced with proper logging)
-        print(f"Ingest error: {e}")
+        log_exception(
+            logger,
+            "Ingest failed",
+            e,
+            ingest_id=ingest_id,
+            filename=filename,
+        )
 
 
 def execute_ingest_from_file(
@@ -54,7 +80,18 @@ def execute_ingest_from_file(
     title: str | None,
 ) -> None:
     """Execute ingest in background from existing file."""
+    space_id = context.get("space")
+    logger = get_logger(space_id=space_id)
+    
     try:
+        logger.info("Starting ingest from file", extra={
+            "extra_fields": {
+                "ingest_id": ingest_id,
+                "file_path": file_path,
+                "title": title,
+            }
+        })
+        
         # Get ingest API instance
         ingest_api = get_ingest_api(config=context)
         
@@ -67,7 +104,6 @@ def execute_ingest_from_file(
         new_sources = write_queue(paths["queue"], sources)
         
         # Write ingest log
-        from pathlib import Path
         filename = Path(file_path).name
         write_ingest_log(paths["ingest_log_dir"], date_str, {
             "date": date_str,
@@ -77,7 +113,20 @@ def execute_ingest_from_file(
             "filename": filename,
         })
         
+        logger.info("Ingest completed successfully", extra={
+            "extra_fields": {
+                "ingest_id": ingest_id,
+                "sources_count": len(sources),
+                "new_sources_count": len(new_sources),
+            }
+        })
+        
     except Exception as e:
-        # Log error (could be enhanced with proper logging)
-        print(f"Ingest error: {e}")
+        log_exception(
+            logger,
+            "Ingest failed",
+            e,
+            ingest_id=ingest_id,
+            file_path=file_path,
+        )
 

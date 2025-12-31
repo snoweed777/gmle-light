@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import os
-import shutil
-from datetime import datetime
 from typing import Any, Dict
 
-import yaml
 from fastapi import APIRouter, HTTPException
 
 from gmle.app.api.rest.models import (
@@ -15,43 +12,21 @@ from gmle.app.api.rest.models import (
     LLMConfigUpdateRequest,
     LLMProviderInfo,
 )
-from gmle.app.config.env_paths import get_config_dir
 from gmle.app.config.secrets import SecretsManager
+from gmle.app.config.yaml_io import load_global_yaml_config, save_global_yaml_config
+from gmle.app.infra.errors import ConfigError
+from gmle.app.infra.logger import get_logger, log_exception
 
 router = APIRouter(prefix="/config/llm", tags=["llm_config"])
-
-
-def _load_global_config() -> Dict[str, Any]:
-    """Load global config from gmle.yaml."""
-    config_file = get_config_dir() / "gmle.yaml"
-    
-    if not config_file.exists():
-        raise HTTPException(status_code=404, detail="Global config not found")
-
-    with open(config_file, encoding="utf-8") as f:
-        result: Dict[str, Any] = yaml.safe_load(f) or {}
-        return result
-
-
-def _save_global_config(config: Dict[str, Any]) -> None:
-    """Save global config to gmle.yaml with backup."""
-    config_file = get_config_dir() / "gmle.yaml"
-
-    # Create backup if file exists
-    if config_file.exists():
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = config_file.with_suffix(f".{timestamp}.backup")
-        shutil.copy2(config_file, backup_file)
-
-    # Save updated config
-    with open(config_file, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
 
 @router.get("", response_model=LLMConfigResponse)
 async def get_llm_config() -> LLMConfigResponse:
     """Get LLM configuration."""
-    config = _load_global_config()
+    logger = get_logger()
+    
+    try:
+        config = load_global_yaml_config()
     llm_config = config.get("llm", {})
 
     active_provider = llm_config.get("active_provider", "cohere")
@@ -74,7 +49,15 @@ async def get_llm_config() -> LLMConfigResponse:
             api_key_configured=api_key_configured,
         )
 
-    return LLMConfigResponse(active_provider=active_provider, providers=providers)
+        return LLMConfigResponse(active_provider=active_provider, providers=providers)
+    except HTTPException:
+        raise
+    except ConfigError as exc:
+        log_exception(logger, "Config error in get_llm_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to load LLM config: {str(exc)}")
+    except Exception as exc:
+        log_exception(logger, "Unexpected error in get_llm_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to load LLM config: {str(exc)}")
 
 
 @router.put("", response_model=LLMConfigResponse)
@@ -82,7 +65,10 @@ async def update_llm_config(
     request: LLMConfigUpdateRequest,
 ) -> LLMConfigResponse:
     """Update LLM configuration."""
-    config = _load_global_config()
+    logger = get_logger()
+    
+    try:
+        config = load_global_yaml_config()
 
     if "llm" not in config:
         config["llm"] = {}
@@ -114,9 +100,17 @@ async def update_llm_config(
                     provider_data["default_model"]
                 )
 
-    # Save updated config
-    _save_global_config(config)
+        # Save updated config
+        save_global_yaml_config(config)
 
-    # Return updated config
-    return await get_llm_config()
+        # Return updated config
+        return await get_llm_config()
+    except HTTPException:
+        raise
+    except ConfigError as exc:
+        log_exception(logger, "Config error in update_llm_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to update LLM config: {str(exc)}")
+    except Exception as exc:
+        log_exception(logger, "Unexpected error in update_llm_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to update LLM config: {str(exc)}")
 

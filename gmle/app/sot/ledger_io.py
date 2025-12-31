@@ -5,23 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 
-import orjson
+from gmle.app.infra.jsonl_io import append_jsonl, read_jsonl
 
 
 def append_ledger(path: Path, record: Dict[str, str]) -> None:
     """Append ledger record (append-only)."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("ab") as f:
-        f.write(orjson.dumps(record) + b"\n")
+    append_jsonl(path, record)
 
 
 def read_ledger(path: Path) -> list[Dict[str, str]]:
     """Read all ledger records."""
-    if not path.exists():
-        return []
-    records = []
-    with path.open("rb") as f:
-        for line in f:
-            if line.strip():
-                records.append(orjson.loads(line))
-    return records
+    return read_jsonl(path)

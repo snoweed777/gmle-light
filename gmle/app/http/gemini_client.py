@@ -164,35 +164,8 @@ def _chat_completions_impl(payload: Dict[str, Any], config: Dict[str, Any] | Non
     response = request("POST", api_url, json=gemini_payload, config=config)
     
     # Gemini API response format
-    if isinstance(response, dict):
-        # Extract text from response.candidates[0].content.parts[0].text
-        if "candidates" in response and len(response["candidates"]) > 0:
-            candidate = response["candidates"][0]
-            if "content" in candidate and "parts" in candidate["content"]:
-                parts = candidate["content"]["parts"]
-                if len(parts) > 0 and "text" in parts[0]:
-                    text = parts[0]["text"]
-                    
-                    # Try to parse as JSON
-                    import re
-                    import json
-                    json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-                    if json_match:
-                        text = json_match.group(1)
-                    else:
-                        json_match = re.search(r'(\{.*\})', text, re.DOTALL)
-                        if json_match:
-                            text = json_match.group(1)
-                    
-                    try:
-                        return json.loads(text)
-                    except (json.JSONDecodeError, ValueError):
-                        return {"text": text}
-        
-        # Fallback: return raw response
-        return response
-    
-    return response
+    from gmle.app.http.json_parser import parse_llm_response
+    return parse_llm_response(response)
 
 
 def chat_completions(payload: Dict[str, Any], config: Dict[str, Any] | None = None) -> Any:

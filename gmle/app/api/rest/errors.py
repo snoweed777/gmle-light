@@ -7,7 +7,6 @@ from typing import NoReturn
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
-from gmle.app.infra.error_utils import to_error_dict
 from gmle.app.infra.errors import (
     AnkiError,
     ConfigError,
@@ -36,7 +35,7 @@ def _get_status_code_for_error(error: GMLEError) -> int:
 
 async def api_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle API exceptions with structured error support."""
-    # Handle structured GMLEError
+    # Handle structured GMLEError (all custom exceptions inherit from this)
     if isinstance(exc, GMLEError):
         status_code = _get_status_code_for_error(exc)
         return JSONResponse(
@@ -44,63 +43,29 @@ async def api_exception_handler(request: Request, exc: Exception) -> JSONRespons
             content=exc.to_dict(),
         )
     
-    # Fallback for non-structured exceptions
-    if isinstance(exc, ConfigError):
+    # Handle FastAPI HTTPException
+    if isinstance(exc, HTTPException):
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=exc.status_code,
             content={
-                "error": "設定エラーが発生しました",
-                "code": "CONFIG_ERROR",
-                "details": {"message": str(exc)},
-                "retryable": False,
+                "error": exc.detail,
+                "code": f"HTTP_{exc.status_code}",
+                "details": {},
+                "retryable": exc.status_code >= 500,
             },
         )
 
-    if isinstance(exc, InfraError):
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "error": "インフラエラーが発生しました",
-                "code": "INFRA_ERROR",
-                "details": {"message": str(exc)},
-                "retryable": True,
-            },
-        )
-
-    if isinstance(exc, AnkiError):
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "error": "Ankiサービスエラーが発生しました",
-                "code": "ANKI_ERROR",
-                "details": {"message": str(exc)},
-                "retryable": True,
-            },
-        )
-
-    if isinstance(exc, SOTError):
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "error": "データエラーが発生しました",
-                "code": "SOT_ERROR",
-                "details": {"message": str(exc)},
-                "retryable": False,
-            },
-        )
-
-    if isinstance(exc, DegradeTrigger):
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "error": "Degradeモードがトリガーされました",
-                "code": "DEGRADE_TRIGGER",
-                "details": {"message": str(exc)},
-                "retryable": False,
-            },
-        )
-
-    # Unknown error
+    # Unknown error - log and return generic response
+    from gmle.app.infra.logger import get_logger, log_exception
+    logger = get_logger()
+    log_exception(
+        logger,
+        "Unhandled exception in API",
+        exc,
+        path=request.url.path,
+        method=request.method,
+    )
+    
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={

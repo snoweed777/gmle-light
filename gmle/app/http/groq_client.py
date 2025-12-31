@@ -162,34 +162,15 @@ def _chat_completions_impl(payload: Dict[str, Any], config: Dict[str, Any] | Non
     response = request("POST", api_url, headers=headers, json=groq_payload, config=config)
     
     # Groq API response format (OpenAI-compatible)
-    if isinstance(response, dict):
-        if "choices" in response and len(response["choices"]) > 0:
-            choice = response["choices"][0]
-            if "message" in choice:
-                content = choice["message"].get("content", "")
-                
-                # Try to parse as JSON (for MCQ generation)
-                import re
-                import json
-                json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', content, re.DOTALL)
-                if json_match:
-                    content = json_match.group(1)
-                else:
-                    json_match = re.search(r'(\{.*\})', content, re.DOTALL)
-                    if json_match:
-                        content = json_match.group(1)
-                
-                try:
-                    return json.loads(content)
-                except (json.JSONDecodeError, ValueError):
-                    # Return in a format compatible with our system
-                    return {
-                        "content": content,
-                        "model": response.get("model", model),
-                        "usage": response.get("usage", {}),
-                    }
+    from gmle.app.http.json_parser import parse_llm_response
+    parsed = parse_llm_response(response)
     
-    return response
+    # Preserve model and usage info if available
+    if isinstance(response, dict) and "model" in response:
+        parsed["model"] = response.get("model", model)
+        parsed["usage"] = response.get("usage", {})
+    
+    return parsed
 
 
 def chat_completions(payload: Dict[str, Any], config: Dict[str, Any] | None = None) -> Any:

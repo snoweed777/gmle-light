@@ -11,8 +11,9 @@ from gmle.app.adapters.anki_client import deck_names, model_names
 from gmle.app.api.rest.errors import raise_not_found
 from gmle.app.api.rest.models import PrerequisitesCheckResponse, RunRequest, RunResponse
 from gmle.app.config.loader import load_config
-from gmle.app.http.cohere_client import check_api_key_status
+from gmle.app.http.api_key_checker import check_active_provider_api_key
 from gmle.app.infra.errors import AnkiError
+from gmle.app.infra.logger import get_logger, log_exception
 from gmle.app.infra.time_id import datestamp_and_run_id
 from gmle.app.sot.queue_io import read_queue
 from .runs_executor import execute_run
@@ -26,34 +27,17 @@ _run_status: Dict[str, Dict[str, Any]] = {}
 
 def _check_prerequisites(space_id: str) -> PrerequisitesCheckResponse:
     """Check prerequisites before run execution."""
+    logger = get_logger()
     checks: Dict[str, Dict[str, Any]] = {}
     warnings: list[str] = []
     errors: list[str] = []
     
     # Check API key status (for active LLM provider)
     try:
-        from gmle.app.config.getter import get_llm_config
-        llm_config = get_llm_config()
-        active_provider = llm_config.get("active_provider", "cohere")
-        
-        if active_provider == "cohere":
-            api_status = check_api_key_status()
-        elif active_provider == "gemini":
-            from gmle.app.http.gemini_client import check_api_key_status as gemini_check
-            api_status = gemini_check()
-        elif active_provider == "groq":
-            from gmle.app.http.groq_client import check_api_key_status as groq_check
-            api_status = groq_check()
-        else:
-            api_status = {
-                "valid": False,
-                "error": f"Unknown provider: {active_provider}",
-                "key_type": None,
-                "has_quota": False,
-            }
+        api_status = check_active_provider_api_key()
+        active_provider = api_status.get("provider", "cohere")
         
         checks["api_key"] = api_status
-        checks["api_key"]["provider"] = active_provider
         
         if not api_status["valid"]:
             errors.append(f"API key is invalid: {api_status.get('error', 'Unknown error')}")
@@ -68,6 +52,7 @@ def _check_prerequisites(space_id: str) -> PrerequisitesCheckResponse:
         elif api_status.get("key_type") == "free" and active_provider == "gemini":
             warnings.append("Using Google AI Studio free tier (1500 requests/day)")
     except Exception as e:
+        log_exception(logger, "Failed to check API key", e)
         checks["api_key"] = {"valid": False, "error": str(e)}
         errors.append(f"Failed to check API key: {e}")
     

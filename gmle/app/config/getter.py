@@ -5,8 +5,33 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional
 
+from gmle.app.config.yaml_io import load_global_yaml_config
+
 
 _config_cache: Optional[Dict[str, Any]] = None
+
+
+def _get_config_with_fallback(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Get config from parameter, cache, or file.
+    
+    Args:
+        config: Optional config dict
+        
+    Returns:
+        Config dictionary
+    """
+    if config is not None:
+        return config
+    
+    if _config_cache is not None:
+        return _config_cache
+    
+    # Fallback: try to load from file
+    try:
+        return load_global_yaml_config()
+    except Exception:
+        # If file loading fails, return empty dict
+        return {}
 
 
 def set_config(config: Dict[str, Any]) -> None:
@@ -88,19 +113,7 @@ def get_http_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
 def get_rate_limit_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Get rate limit configuration."""
-    cfg = config or _config_cache
-    
-    # If config cache is not available, try to load from file
-    if cfg is None:
-        import yaml
-        from gmle.app.config.env_paths import get_config_dir
-        config_file = get_config_dir() / "gmle.yaml"
-        if config_file.exists():
-            with config_file.open("r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f) or {}
-        else:
-            cfg = {}
-    
+    cfg = _get_config_with_fallback(config)
     rate_limit_cfg = cfg.get("rate_limit", {})
     
     enabled = rate_limit_cfg.get("enabled", True)
@@ -163,19 +176,7 @@ def get_ingest_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
 
 def get_llm_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Get LLM configuration."""
-    cfg = config or _config_cache
-    
-    # If config cache is not available, try to load from file
-    if cfg is None:
-        import yaml
-        from gmle.app.config.env_paths import get_config_dir
-        config_file = get_config_dir() / "gmle.yaml"
-        if config_file.exists():
-            with config_file.open("r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f) or {}
-        else:
-            cfg = {}
-    
+    cfg = _get_config_with_fallback(config)
     llm_cfg = cfg.get("llm", {})
     
     active_provider = llm_cfg.get("active_provider", "cohere")

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from gmle.app.api.rest.errors import api_exception_handler
-from gmle.app.infra.errors import AnkiError, ConfigError, DegradeTrigger, InfraError, SOTError
+from gmle.app.infra.errors import GMLEError
 from .routes import config, global_config, ingest, items, llm_config, prompts_config, runs, spaces, system
 
 app = FastAPI(
@@ -27,11 +27,9 @@ app.add_middleware(
 )
 
 # Exception handlers
-app.add_exception_handler(ConfigError, api_exception_handler)
-app.add_exception_handler(InfraError, api_exception_handler)
-app.add_exception_handler(AnkiError, api_exception_handler)
-app.add_exception_handler(SOTError, api_exception_handler)
-app.add_exception_handler(DegradeTrigger, api_exception_handler)
+# GMLEError is the base class for all custom exceptions, so we only need to register it
+# and the generic Exception handler for unknown errors
+app.add_exception_handler(GMLEError, api_exception_handler)
 app.add_exception_handler(Exception, api_exception_handler)
 
 # Include routers

@@ -7,7 +7,6 @@ from typing import Any, Dict
 from gmle.app.adapters.anki_client import build_base_query
 from gmle.app.cycle.cycle_apply import cleanup_cycle_tags, apply_today_tags
 from gmle.app.cycle.base_fetch import fetch_base_notes_info
-from gmle.app.infra.error_utils import create_structured_error
 from gmle.app.infra.errors import DegradeTrigger
 from gmle.app.infra.logger import get_logger, with_fields
 from gmle.app.infra.time_id import today_str
@@ -15,14 +14,9 @@ from .check_minimal_cycle import check_minimal_cycle_conditions
 from .select_degraded_today import select_degraded_today
 
 
-def get_logger_for_context(context: dict) -> Any:
-    """Get logger with space_id from context."""
-    return get_logger(space_id=context.get("space_id"))
-
-
 def handle_degrade(reason: str, context: Dict[str, Any]) -> None:
     """Handle Safe-Degrade path (spec 12.2) with improved error handling."""
-    logger = get_logger_for_context(context)
+    logger = get_logger(space_id=context.get("space_id"))
     deck_bank = context["deck_bank"]
     params = context.get("params", {})
     total = params.get("total", 30)

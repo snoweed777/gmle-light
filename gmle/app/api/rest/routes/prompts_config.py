@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import shutil
-from datetime import datetime
 from typing import Any, Dict
 
-import yaml
 from fastapi import APIRouter, HTTPException
 
 from gmle.app.api.rest.models import (
@@ -14,57 +11,43 @@ from gmle.app.api.rest.models import (
     PromptsConfigResponse,
     PromptsConfigUpdateRequest,
 )
-from gmle.app.config.env_paths import get_config_dir
+from gmle.app.config.yaml_io import load_global_yaml_config, save_global_yaml_config
+from gmle.app.infra.errors import ConfigError
+from gmle.app.infra.logger import get_logger, log_exception
 
 router = APIRouter(prefix="/config/prompts", tags=["prompts_config"])
-
-
-def _load_global_config() -> Dict[str, Any]:
-    """Load global config from gmle.yaml."""
-    config_file = get_config_dir() / "gmle.yaml"
-    
-    if not config_file.exists():
-        raise HTTPException(status_code=404, detail="Global config not found")
-
-    with open(config_file, encoding="utf-8") as f:
-        result: Dict[str, Any] = yaml.safe_load(f) or {}
-        return result
-
-
-def _save_global_config(config: Dict[str, Any]) -> None:
-    """Save global config to gmle.yaml with backup."""
-    config_file = get_config_dir() / "gmle.yaml"
-
-    # Create backup if file exists
-    if config_file.exists():
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = config_file.with_suffix(f".{timestamp}.backup")
-        shutil.copy2(config_file, backup_file)
-
-    # Save updated config
-    with open(config_file, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
 
 @router.get("", response_model=PromptsConfigResponse)
 async def get_prompts_config() -> PromptsConfigResponse:
     """Get prompts configuration."""
-    config = _load_global_config()
+    logger = get_logger()
+    
+    try:
+        config = load_global_yaml_config()
     prompts_config = config.get("prompts", {})
 
     stage1 = prompts_config.get("stage1_extract", {})
     stage2 = prompts_config.get("stage2_build_mcq", {})
 
-    return PromptsConfigResponse(
-        stage1_extract=PromptInfo(
-            description=stage1.get("description", "Stage 1: 事実抽出プロンプト"),
-            template=stage1.get("template", ""),
-        ),
-        stage2_build_mcq=PromptInfo(
-            description=stage2.get("description", "Stage 2: MCQ生成プロンプト"),
-            template=stage2.get("template", ""),
-        ),
-    )
+        return PromptsConfigResponse(
+            stage1_extract=PromptInfo(
+                description=stage1.get("description", "Stage 1: 事実抽出プロンプト"),
+                template=stage1.get("template", ""),
+            ),
+            stage2_build_mcq=PromptInfo(
+                description=stage2.get("description", "Stage 2: MCQ生成プロンプト"),
+                template=stage2.get("template", ""),
+            ),
+        )
+    except HTTPException:
+        raise
+    except ConfigError as exc:
+        log_exception(logger, "Config error in get_prompts_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to load prompts config: {str(exc)}")
+    except Exception as exc:
+        log_exception(logger, "Unexpected error in get_prompts_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to load prompts config: {str(exc)}")
 
 
 @router.put("", response_model=PromptsConfigResponse)
@@ -72,7 +55,10 @@ async def update_prompts_config(
     request: PromptsConfigUpdateRequest,
 ) -> PromptsConfigResponse:
     """Update prompts configuration."""
-    config = _load_global_config()
+    logger = get_logger()
+    
+    try:
+        config = load_global_yaml_config()
 
     if "prompts" not in config:
         config["prompts"] = {}
@@ -105,9 +91,17 @@ async def update_prompts_config(
                 request.stage2_build_mcq["description"]
             )
 
-    # Save updated config
-    _save_global_config(config)
+        # Save updated config
+        save_global_yaml_config(config)
 
-    # Return updated config
-    return await get_prompts_config()
+        # Return updated config
+        return await get_prompts_config()
+    except HTTPException:
+        raise
+    except ConfigError as exc:
+        log_exception(logger, "Config error in update_prompts_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to update prompts config: {str(exc)}")
+    except Exception as exc:
+        log_exception(logger, "Unexpected error in update_prompts_config", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to update prompts config: {str(exc)}")
 

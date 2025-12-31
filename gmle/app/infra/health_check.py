@@ -195,41 +195,4 @@ def check_environment() -> Dict[str, Any]:
     }
 
 
-def print_health_report(report: Dict[str, Any]) -> None:
-    """Print a formatted health report to console."""
-    print("=" * 70)
-    print("GMLE+ Environment Health Check")
-    print("=" * 70)
-    print(f"Python Version: {report['python_version']}")
-    print(f"Project Root: {report['project_root']}")
-    print(f"Config Dir: {report['config_dir']}")
-    print(f"Spaces Dir: {report['spaces_dir']}")
-    print()
-    
-    if report["healthy"]:
-        print("✅ Environment is healthy!")
-    else:
-        print("❌ Environment has issues!")
-    
-    print()
-    summary = report["summary"]
-    print(f"Total Issues: {summary['total']}")
-    print(f"  Errors: {summary['errors']}")
-    print(f"  Warnings: {summary['warnings']}")
-    print(f"  Info: {summary['infos']}")
-    print()
-    
-    if report["issues"]:
-        print("Issues:")
-        print("-" * 70)
-        for issue in report["issues"]:
-            severity_icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}.get(
-                issue["severity"], "•"
-            )
-            print(f"{severity_icon} [{issue['severity'].upper()}] {issue['message']}")
-            if issue["suggestion"]:
-                print(f"   💡 {issue['suggestion']}")
-            print()
-    
-    print("=" * 70)
 

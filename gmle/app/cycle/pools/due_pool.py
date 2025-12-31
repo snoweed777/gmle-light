@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from .common import build_note_id_to_card_map
+
 
 def select_due_pool(
     base_notes: List[Dict[str, Any]],
@@ -11,7 +13,7 @@ def select_due_pool(
     exclude_note_ids: set[int],
 ) -> List[int]:
     """Select DuePool: due昇順 (due asc, lapses desc, note_id asc)."""
-    note_id_to_card = {c["note"]: c for c in base_cards}
+    note_id_to_card = build_note_id_to_card_map(base_cards)
     candidates = []
     for note in base_notes:
         note_id = note["noteId"]

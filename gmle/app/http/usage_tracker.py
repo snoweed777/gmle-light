@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import json
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+import orjson
+
 from gmle.app.infra.errors import InfraError
+from gmle.app.infra.logger import get_logger, log_exception
 
 
 class GlobalUsageTracker:
@@ -58,6 +60,8 @@ class GlobalUsageTracker:
 
     def _load_usage(self) -> Dict[str, Any]:
         """Load usage data from file."""
+        logger = get_logger()
+        
         if not self.usage_file.exists():
             return {
                 "version": "1.0",
@@ -70,8 +74,8 @@ class GlobalUsageTracker:
             }
         
         try:
-            with open(self.usage_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            with self.usage_file.open("rb") as f:
+                data = orjson.loads(f.read())
             
             # Validate structure
             if not isinstance(data, dict):
@@ -86,8 +90,14 @@ class GlobalUsageTracker:
                 data["metadata"] = {}
             
             return data
-        except (json.JSONDecodeError, ValueError, IOError) as e:
+        except (orjson.JSONDecodeError, ValueError, IOError) as e:
             # File corrupted or invalid - reset to empty
+            log_exception(
+                logger,
+                "Failed to load usage data, resetting",
+                e,
+                usage_file=str(self.usage_file),
+            )
             return {
                 "version": "1.0",
                 "last_updated": datetime.now(timezone.utc).isoformat(),
@@ -101,14 +111,16 @@ class GlobalUsageTracker:
 
     def _save_usage(self, usage: Dict[str, Any]) -> None:
         """Save usage data atomically."""
+        logger = get_logger()
+        
         # Atomic write: write to temp file, then rename
         temp_file = self.usage_file.with_suffix('.tmp')
         
         try:
             usage["last_updated"] = datetime.now(timezone.utc).isoformat()
             
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(usage, f, indent=2, ensure_ascii=False)
+            with temp_file.open("wb") as f:
+                f.write(orjson.dumps(usage, option=orjson.OPT_INDENT_2))
             
             # Atomic rename
             temp_file.replace(self.usage_file)
@@ -116,6 +128,12 @@ class GlobalUsageTracker:
             # Clean up temp file on error
             if temp_file.exists():
                 temp_file.unlink()
+            log_exception(
+                logger,
+                "Failed to save usage data",
+                e,
+                usage_file=str(self.usage_file),
+            )
             raise InfraError(f"Failed to save usage data: {e}") from e
 
     def _reset_daily_usage_if_needed(self, usage: Dict[str, Any]) -> bool:
@@ -203,16 +221,16 @@ class GlobalUsageTracker:
                 
                 # Only count successful calls
                 if success:
-                    # Increment counters
-                    if call_type not in usage["daily_usage"][current_date][provider]:
-                        usage["daily_usage"][current_date][provider][call_type] = 0
-                    usage["daily_usage"][current_date][provider][call_type] += 1
-                    usage["daily_usage"][current_date][provider]["total"] += 1
+                    # Increment counters (use setdefault for efficiency)
+                    daily_provider = usage["daily_usage"][current_date][provider]
+                    daily_provider.setdefault(call_type, 0)
+                    daily_provider[call_type] += 1
+                    daily_provider["total"] += 1
                     
-                    if call_type not in usage["hourly_usage"][current_hour][provider]:
-                        usage["hourly_usage"][current_hour][provider][call_type] = 0
-                    usage["hourly_usage"][current_hour][provider][call_type] += 1
-                    usage["hourly_usage"][current_hour][provider]["total"] += 1
+                    hourly_provider = usage["hourly_usage"][current_hour][provider]
+                    hourly_provider.setdefault(call_type, 0)
+                    hourly_provider[call_type] += 1
+                    hourly_provider["total"] += 1
                 
                 self._save_usage(usage)
 

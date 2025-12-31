@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from .errors import GMLEError, InfraError
+from .errors import InfraError
 
 
 def create_structured_error(
@@ -34,24 +34,4 @@ def create_structured_error(
         details=details or {},
         retryable=retryable,
     )
-
-
-def to_error_dict(error: Exception) -> Dict[str, Any]:
-    """Convert exception to error dictionary.
-    
-    Args:
-        error: Exception instance
-    
-    Returns:
-        Dictionary with error information
-    """
-    if isinstance(error, GMLEError):
-        return error.to_dict()
-    
-    return {
-        "error": str(error),
-        "code": type(error).__name__,
-        "details": {},
-        "retryable": False,
-    }
 

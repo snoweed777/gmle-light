@@ -99,8 +99,24 @@ def _get_log_file_path(space_id: Optional[str] = None) -> Optional[Path]:
 
 
 def get_logger(name: str = "gmle", space_id: Optional[str] = None) -> logging.Logger:
-    """Return configured logger with file output and CLI detection."""
-    logger = logging.getLogger(name)
+    """Return configured logger with file output and CLI detection.
+    
+    Args:
+        name: Logger name (default: "gmle")
+        space_id: Optional space ID for space-specific logging
+        
+    Returns:
+        Configured logger instance
+        
+    Note:
+        Logger name includes space_id if provided to ensure separate loggers
+        for different spaces. Handlers are only added once per logger instance.
+    """
+    # Include space_id in logger name to ensure separate loggers per space
+    logger_name = f"{name}.{space_id}" if space_id else name
+    logger = logging.getLogger(logger_name)
+    
+    # Check if logger is already configured (has handlers)
     if logger.handlers:
         return logger
     
@@ -114,24 +130,37 @@ def get_logger(name: str = "gmle", space_id: Optional[str] = None) -> logging.Lo
     log_level = getattr(logging, log_level_str, logging.INFO)
     
     # Console handler (human-readable for CLI, JSON otherwise)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(_KVFormatter(human=human_readable))
-    console_handler.setLevel(log_level)
-    logger.addHandler(console_handler)
+    # Check if console handler already exists
+    has_console_handler = any(
+        isinstance(h, logging.StreamHandler) and h.stream == sys.stdout
+        for h in logger.handlers
+    )
+    if not has_console_handler:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(_KVFormatter(human=human_readable))
+        console_handler.setLevel(log_level)
+        logger.addHandler(console_handler)
     
     # File handler (always JSON)
+    # Only add file handler if space_id is provided and log file path exists
     log_file = _get_log_file_path(space_id)
     if log_file:
-        file_handler = TimedRotatingFileHandler(
-            str(log_file),
-            when="midnight",
-            interval=1,
-            backupCount=int(os.getenv("GMLE_LOG_ROTATION", "30")),
-            encoding="utf-8",
+        # Check if file handler for this specific file already exists
+        has_file_handler = any(
+            isinstance(h, TimedRotatingFileHandler) and h.baseFilename == str(log_file)
+            for h in logger.handlers
         )
-        file_handler.setFormatter(_KVFormatter(human=False))
-        file_handler.setLevel(logging.DEBUG)  # File always has DEBUG level
-        logger.addHandler(file_handler)
+        if not has_file_handler:
+            file_handler = TimedRotatingFileHandler(
+                str(log_file),
+                when="midnight",
+                interval=1,
+                backupCount=int(os.getenv("GMLE_LOG_ROTATION", "30")),
+                encoding="utf-8",
+            )
+            file_handler.setFormatter(_KVFormatter(human=False))
+            file_handler.setLevel(logging.DEBUG)  # File always has DEBUG level
+            logger.addHandler(file_handler)
     
     logger.setLevel(log_level)
     logger.propagate = False

@@ -170,29 +170,8 @@ def _chat_completions_impl(payload: Dict[str, Any], config: Dict[str, Any] | Non
     response = request("POST", api_url, headers=headers, json=cohere_payload)
     
     # Cohere v1 API response format: response.text contains the message content
-    if isinstance(response, dict):
-        if "text" in response:
-            # If response.text is a string, try to parse as JSON
-            text = response["text"]
-            if isinstance(text, str):
-                # Remove markdown code blocks if present
-                import re
-                json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-                if json_match:
-                    text = json_match.group(1)
-                else:
-                    # Try to extract JSON object directly
-                    json_match = re.search(r'(\{.*\})', text, re.DOTALL)
-                    if json_match:
-                        text = json_match.group(1)
-                
-                try:
-                    import json
-                    return json.loads(text)
-                except (json.JSONDecodeError, ValueError):
-                    return {"text": response["text"]}
-        return response
-    return response
+    from gmle.app.http.json_parser import parse_llm_response
+    return parse_llm_response(response)
 
 
 def chat_completions(payload: Dict[str, Any], config: Dict[str, Any] | None = None) -> Any:

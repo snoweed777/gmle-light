@@ -1,15 +1,9 @@
-"""Time and ID utilities (stub)."""
+"""Time and ID utilities."""
 
 from __future__ import annotations
 
 import datetime as dt
 import uuid
-from typing import Tuple
-
-
-def now_utc() -> dt.datetime:
-    """UTC now with tzinfo."""
-    return dt.datetime.now(dt.timezone.utc)
 
 
 def today_str(date: dt.date | None = None) -> str:
@@ -23,6 +17,6 @@ def new_run_id() -> str:
     return uuid.uuid4().hex
 
 
-def datestamp_and_run_id() -> Tuple[str, str]:
+def datestamp_and_run_id() -> tuple[str, str]:
     """Utility returning date string and run_id."""
     return today_str(), new_run_id()
