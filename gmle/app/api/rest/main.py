@@ -10,9 +10,9 @@ from gmle.app.infra.errors import AnkiError, ConfigError, InfraError, SOTError
 from .routes import config, global_config, ingest, items, llm_config, prompts_config, runs, spaces, system
 
 app = FastAPI(
-    title="GMLE+ REST API",
-    description="Guided Meta Learning Engine Plus REST API",
-    version="1.5.0",
+    title="GMLE Light REST API",
+    description="GMLE Light - Lightweight MCQ Generator with Local Anki Integration",
+    version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -48,7 +48,7 @@ app.include_router(system.router, prefix="/api/v1", tags=["system"])
 @app.get("/")
 async def root() -> dict[str, str]:
     """Root endpoint."""
-    return {"message": "GMLE+ REST API", "version": "1.5.0"}
+    return {"message": "GMLE Light REST API", "version": "0.1.0"}
 
 
 @app.get("/health")
