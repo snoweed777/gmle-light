@@ -14,7 +14,7 @@ services:
       - ./config:/app/config
       - ./data:/app/data
       # .env file for API keys
-      - ./.env:/app/.env:ro
+      - ./.env:/app/.env
     environment:
       - PYTHONUNBUFFERED=1
       - GMLE_CONFIG_DIR=/app/config
