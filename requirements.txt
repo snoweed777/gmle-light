@@ -1,0 +1,29 @@
+# 開発用依存関係（推奨バージョン範囲）
+# CI/本番環境では requirements-lock.txt を使用してください
+#
+# 注意: Ankiとその依存関係（PyQt5等）はシステムパッケージとしてインストールされます
+# セットアップスクリプト（scripts/setup.sh）を実行すると自動的にインストールされます
+# 手動インストールの場合: sudo apt-get install anki python3-pyqt5.sip python3-pyqt5 python3-sip (Debian/Ubuntu)
+#
+# Python 3.11+を使用している場合の注意:
+# - システムのPyQt5パッケージがPython 3.10用のsipモジュールしか提供していない場合があります
+# - この場合、setup.shスクリプトが自動的にPython 3.11用のsipモジュールを作成します
+# - 手動で作成する場合: sudo cp /usr/lib/python3/dist-packages/PyQt5/sip.cpython-310-*.so \
+#   /usr/lib/python3/dist-packages/PyQt5/sip.cpython-311-*.so
+
+typer>=0.9.0
+httpx>=0.25.0
+orjson>=3.9.0
+pyyaml>=6.0
+python-docx>=1.0.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.9
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+cryptography>=41.0.0
+pytest>=7.4.0
+pytest-cov>=4.1.0
+ruff>=0.1.0
+mypy>=1.5.0
+freezegun>=1.2.0
+types-PyYAML>=6.0

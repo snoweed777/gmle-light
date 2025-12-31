@@ -1,0 +1,146 @@
+# GMLE+ グローバル設定ファイル
+# このファイルは全Space共通のデフォルト設定を定義します
+# Space固有設定（config/spaces/<space_id>.yaml）で上書き可能です
+
+version: "1.0"
+
+# LLMプロバイダー設定
+llm:
+  active_provider: "cohere"  # 現在使用中のLLMプロバイダー
+  
+  providers:
+    cohere:
+      api_url: "https://api.cohere.ai/v1/chat"
+      default_model: "command-a-03-2025"
+      available_models:
+        - "command-a-03-2025"
+        - "command-r-plus"
+      # api_keyは環境変数COHERE_API_KEYまたは暗号化ファイルから読み込み
+    
+
+# API設定（非LLM）
+api:
+  readwise:
+    api_url: "https://readwise.io/api/v2/highlights/"
+    # tokenは環境変数READWISE_TOKENから読み込み（機密情報のため設定ファイルには記載しない）
+  
+  anki:
+    connect_url: "http://127.0.0.1:8765"  # 環境変数ANKI_CONNECT_URLで上書き可能
+    connect_version: 6
+    auto_sync: true
+    # AnkiWebアカウント設定（暗号化して保存）
+    ankiweb:
+      username: null  # AnkiWebユーザー名（環境変数ANKIWEB_USERNAMEで上書き可能）
+      # passwordは暗号化ファイルまたは環境変数ANKIWEB_PASSWORDから読み込み
+      auto_login: true  # Anki起動時に自動ログイン
+    # ヘッドレスモードでの自動起動設定
+    headless:
+      enabled: false  # GUI環境ではfalse、サーバー環境ではtrue
+      xvfb_display: ":99"
+      xvfb_screen_size: "1024x768x16"
+  
+  # 内部API設定（将来のマイクロサービス化対応）
+  generation:
+    microservice:
+      enabled: false  # trueにするとマイクロサービス経由で実行
+      url: "http://localhost:8001"  # マイクロサービスのURL
+  
+  ingest:
+    microservice:
+      enabled: false  # trueにするとマイクロサービス経由で実行
+      url: "http://localhost:8002"  # マイクロサービスのURL
+
+# Anki設定
+anki:
+  note_type_name: "GMLE_MCQA"
+  deck_bank_prefix: "GMLE::Bank::"
+  # カードテンプレート（高度なカスタマイズ用、オプション）
+  # nullの場合はデフォルトテンプレートを使用
+  card_template:
+    front: null
+    back: null
+    css: ""
+
+# HTTP設定
+http:
+  timeout: 30.0
+  max_retries: 3
+  retry_backoff_base: 2
+
+# レート制限設定
+rate_limit:
+  enabled: true  # レート制限を有効化
+  requests_per_minute: 10  # 1分あたりの最大リクエスト数
+  requests_per_hour: 500  # 1時間あたりの最大リクエスト数
+  cooldown_seconds: 60  # レート制限到達時の待機時間（秒）
+
+# ログ設定
+logging:
+  format: "human"  # human/json
+  level: "INFO"    # DEBUG/INFO/WARNING/ERROR
+  file: null       # null=自動（data/<space>/logs/gmle-<date>.log）
+  rotation_days: 30
+
+# ロック設定
+lock:
+  stale_seconds: 3600
+
+# Ingest設定
+ingest:
+  excerpt_min: 200
+  excerpt_max: 800
+  quarantine_min_length: 200
+
+# デフォルトパラメータ（Space設定で上書き可能）
+params:
+  total: 30
+  new_total: 10
+  maintain_total: 20
+  coverage: 3
+  improve: 7
+  reward_cap: 3
+  domain_cap_steps: [6, 7, 8, 9999]
+  excerpt_min: 200
+  excerpt_max: 800
+  rationale_quote_max: 100
+
+# プロンプトテンプレート設定
+# GUIから編集可能
+prompts:
+  stage1_extract:
+    description: "Stage 1: 事実抽出プロンプト"
+    template: |
+      以下のテキストから重要な事実を抽出してください。
+      各事実には、元のテキストからの引用（support_quote）を必ず含めてください。
+      
+      【テキスト】
+      {excerpt}
+      
+      【出力形式】
+      JSONフォーマットで返してください：
+      {{
+        "facts": [
+          {{"id": "f1", "text": "事実の内容", "support_quote": "元のテキストからの引用"}}
+        ]
+      }}
+  
+  stage2_build_mcq:
+    description: "Stage 2: MCQ生成プロンプト"
+    template: |
+      以下の事実から多肢選択問題（MCQ）を作成してください。
+      
+      【事実】
+      {facts}
+      
+      【出力形式】
+      JSONフォーマットで返してください：
+      {{
+        "question": "問題文",
+        "choices": ["A: 選択肢1", "B: 選択肢2", "C: 選択肢3", "D: 選択肢4"],
+        "answer": "A",
+        "rationale": {{
+          "text": "解説文",
+          "quote": "元のテキストからの引用（100文字以内）"
+        }}
+      }}
+

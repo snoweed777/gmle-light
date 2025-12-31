@@ -1,0 +1,266 @@
+# GMLE+ 設定スキーマ定義
+# GUIでのバリデーション用
+
+schema_version: "1.0"
+
+# パラメータ定義
+params:
+  total:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 30
+    description: "Today集合のノート数"
+  
+  new_total:
+    type: integer
+    minimum: 0
+    maximum: 50
+    default: 10
+    description: "新規生成ノート数"
+  
+  maintain_total:
+    type: integer
+    minimum: 0
+    maximum: 50
+    default: 20
+    description: "維持ノート数"
+  
+  coverage:
+    type: integer
+    minimum: 1
+    maximum: 10
+    default: 3
+    description: "Coverageパラメータ"
+  
+  improve:
+    type: integer
+    minimum: 1
+    maximum: 10
+    default: 7
+    description: "Improveパラメータ"
+  
+  reward_cap:
+    type: integer
+    minimum: 1
+    maximum: 10
+    default: 3
+    description: "Reward capパラメータ"
+  
+  domain_cap_steps:
+    type: array
+    items:
+      type: integer
+    default: [6, 7, 8, 9999]
+    description: "Domain cap steps"
+  
+  excerpt_min:
+    type: integer
+    minimum: 100
+    maximum: 1000
+    default: 200
+    description: "Excerpt最小文字数"
+  
+  excerpt_max:
+    type: integer
+    minimum: 200
+    maximum: 2000
+    default: 800
+    description: "Excerpt最大文字数"
+  
+  rationale_quote_max:
+    type: integer
+    minimum: 50
+    maximum: 500
+    default: 100
+    description: "Rationale quote最大文字数"
+
+# API設定定義
+api:
+  cohere:
+    api_url:
+      type: string
+      format: uri
+      default: "https://api.cohere.ai/v1/chat"
+      description: "Cohere API URL"
+    
+    model:
+      type: string
+      default: "command-a-03-2025"
+      enum: ["command-a-03-2025", "command-r-plus"]
+      description: "Cohereモデル名"
+  
+  readwise:
+    api_url:
+      type: string
+      format: uri
+      default: "https://readwise.io/api/v2/highlights/"
+      description: "Readwise API URL"
+  
+  anki:
+    connect_url:
+      type: string
+      format: uri
+      default: "http://127.0.0.1:8765"
+      description: "AnkiConnect URL"
+    
+    connect_version:
+      type: integer
+      default: 6
+      description: "AnkiConnectバージョン"
+    
+    auto_sync:
+      type: boolean
+      default: true
+      description: "AnkiWeb自動同期"
+    
+    ankiweb:
+      username:
+        type: string
+        nullable: true
+        default: null
+        description: "AnkiWebユーザー名（環境変数ANKIWEB_USERNAMEで上書き可能）"
+      
+      auto_login:
+        type: boolean
+        default: true
+        description: "Anki起動時に自動ログイン"
+    
+    headless:
+      enabled:
+        type: boolean
+        default: false
+        description: "ヘッドレスモード有効化"
+      
+      xvfb_display:
+        type: string
+        default: ":99"
+        description: "Xvfbディスプレイ番号"
+      
+      xvfb_screen_size:
+        type: string
+        default: "1024x768x16"
+        description: "Xvfb画面サイズ"
+
+# Anki設定定義
+anki:
+  note_type_name:
+    type: string
+    default: "GMLE_MCQA"
+    description: "Anki Note Type名"
+  
+  deck_bank_prefix:
+    type: string
+    default: "GMLE::Bank::"
+    description: "Deck名のプレフィックス"
+
+# HTTP設定定義
+http:
+  timeout:
+    type: number
+    minimum: 1.0
+    maximum: 300.0
+    default: 30.0
+    description: "HTTPタイムアウト（秒）"
+  
+  max_retries:
+    type: integer
+    minimum: 0
+    maximum: 10
+    default: 3
+    description: "HTTP最大リトライ回数"
+  
+  retry_backoff_base:
+    type: integer
+    minimum: 1
+    maximum: 10
+    default: 2
+    description: "HTTPリトライ指数バックオフの基数"
+
+# レート制限設定定義
+rate_limit:
+  enabled:
+    type: boolean
+    default: true
+    description: "レート制限を有効化"
+  
+  requests_per_minute:
+    type: integer
+    minimum: 1
+    maximum: 1000
+    default: 10
+    description: "1分あたりの最大リクエスト数"
+  
+  requests_per_hour:
+    type: integer
+    minimum: 1
+    maximum: 10000
+    default: 500
+    description: "1時間あたりの最大リクエスト数"
+  
+  cooldown_seconds:
+    type: integer
+    minimum: 1
+    maximum: 3600
+    default: 60
+    description: "レート制限到達時の待機時間（秒）"
+
+# ログ設定定義
+logging:
+  format:
+    type: string
+    enum: ["human", "json"]
+    default: "human"
+    description: "ログ形式"
+  
+  level:
+    type: string
+    enum: ["DEBUG", "INFO", "WARNING", "ERROR"]
+    default: "INFO"
+    description: "ログレベル"
+  
+  file:
+    type: string
+    nullable: true
+    default: null
+    description: "ログファイルパス（null=自動）"
+  
+  rotation_days:
+    type: integer
+    minimum: 1
+    maximum: 365
+    default: 30
+    description: "ログローテーション日数"
+
+# ロック設定定義
+lock:
+  stale_seconds:
+    type: integer
+    minimum: 60
+    maximum: 86400
+    default: 3600
+    description: "ロックのstale判定時間（秒）"
+
+# Ingest設定定義
+ingest:
+  excerpt_min:
+    type: integer
+    minimum: 100
+    maximum: 1000
+    default: 200
+    description: "Excerpt最小文字数"
+  
+  excerpt_max:
+    type: integer
+    minimum: 200
+    maximum: 2000
+    default: 800
+    description: "Excerpt最大文字数"
+  
+  quarantine_min_length:
+    type: integer
+    minimum: 100
+    maximum: 1000
+    default: 200
+    description: "Quarantine最小文字数"
+

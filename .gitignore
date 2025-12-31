@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Environment
+.env
+.env.local
+# .env.example はリポジトリに含める（テンプレートとして）
+!.env.example
+
+# Secrets (deprecated - now using .env only)
+config/secrets.enc.yaml
+config/encryption.key
+
+# Data
+data/
+sources/
+
+# Config files (ローカル固有の設定ファイル)
+config/gmle.local.yaml
+config/spaces/*.yaml
+!config/spaces/example.yaml
+# テンプレートファイルはリポジトリに含める
+!config/gmle.yaml.example
+# Backup files (auto-generated when saving config)
+*.backup
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+frontend/.env*.local
+# Allow frontend/src/lib (TypeScript utilities)
+!frontend/src/lib/
+# Allow scripts/lib (Python utility scripts)
+!scripts/lib/
+
+# Docker
+.docker-setup-complete

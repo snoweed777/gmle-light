@@ -1,0 +1,13 @@
+"""Spec constants for GMLE+ (defaults)."""
+
+TOTAL_DEFAULT: int = 30
+NEW_TOTAL_DEFAULT: int = 10
+MAINTAIN_TOTAL_DEFAULT: int = 20
+COVERAGE_DEFAULT: int = 3
+IMPROVE_DEFAULT: int = 7
+REWARD_CAP_DEFAULT: int = 3
+DOMAIN_CAP_STEPS_DEFAULT: tuple[int, ...] = (6, 7, 8, 9999)
+EXCERPT_MIN: int = 200
+EXCERPT_MAX: int = 800
+RATIONALE_QUOTE_MAX: int = 100
+
