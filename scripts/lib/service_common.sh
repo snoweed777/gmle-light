@@ -1,13 +1,11 @@
 #!/bin/bash
-# GMLE+ サービス管理共通ライブラリ
+# GMLE Light サービス管理共通ライブラリ
 # 各サービス管理スクリプトからsourceで読み込む
 
 # PIDファイルパス定数
 readonly PID_DIR="/tmp"
-readonly ANKI_PID_FILE="${PID_DIR}/gmle-anki.pid"
 readonly API_PID_FILE="${PID_DIR}/gmle-api.pid"
 readonly GUI_PID_FILE="${PID_DIR}/gmle-gui.pid"
-readonly XVFB_PID_FILE="${PID_DIR}/xvfb-anki.pid"
 
 # ログ関数
 log() {
@@ -142,4 +140,3 @@ get_service_status() {
     echo "running"
     return 0
 }
-

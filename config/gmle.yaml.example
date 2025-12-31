@@ -1,4 +1,4 @@
-# GMLE+ グローバル設定ファイル
+# GMLE Light グローバル設定ファイル
 # このファイルは全Space共通のデフォルト設定を定義します
 # Space固有設定（config/spaces/<space_id>.yaml）で上書き可能です
 
@@ -6,7 +6,7 @@ version: "1.0"
 
 # LLMプロバイダー設定
 llm:
-  active_provider: "cohere"  # 現在使用中のLLMプロバイダー
+  active_provider: "groq"  # 現在使用中のLLMプロバイダー (cohere/gemini/groq)
   
   providers:
     cohere:
@@ -15,47 +15,56 @@ llm:
       available_models:
         - "command-a-03-2025"
         - "command-r-plus"
-      # api_keyは環境変数COHERE_API_KEYまたは暗号化ファイルから読み込み
+      # api_keyは環境変数COHERE_API_KEYから読み込み
     
+    gemini:
+      api_url: "https://generativelanguage.googleapis.com/v1beta"
+      default_model: "gemini-2.5-flash"
+      available_models:
+        - "gemini-2.5-flash"
+        - "gemini-2.5-pro"
+        - "gemini-2.0-flash"
+        - "gemini-1.5-pro"
+        - "gemini-1.5-flash"
+      # api_keyは環境変数GOOGLE_AI_API_KEYから読み込み
+    
+    groq:
+      api_url: "https://api.groq.com/openai/v1"
+      default_model: "llama-3.1-8b-instant"
+      available_models:
+        - "llama-3.1-8b-instant"
+        - "llama-3.3-70b-versatile"
+        - "mixtral-8x7b-32768"
+        - "gemma-7b-it"
+        - "gemma2-9b-it"
+      # api_keyは環境変数GROQ_API_KEYから読み込み
 
 # API設定（非LLM）
 api:
   readwise:
     api_url: "https://readwise.io/api/v2/highlights/"
-    # tokenは環境変数READWISE_TOKENから読み込み（機密情報のため設定ファイルには記載しない）
+    # tokenは環境変数READWISE_TOKENから読み込み
   
   anki:
-    connect_url: "http://127.0.0.1:8765"  # 環境変数ANKI_CONNECT_URLで上書き可能
+    # Docker内からホストMacのAnkiConnectに接続
+    connect_url: "http://host.docker.internal:8765"
     connect_version: 6
-    auto_sync: true
-    # AnkiWebアカウント設定（暗号化して保存）
-    ankiweb:
-      username: null  # AnkiWebユーザー名（環境変数ANKIWEB_USERNAMEで上書き可能）
-      # passwordは暗号化ファイルまたは環境変数ANKIWEB_PASSWORDから読み込み
-      auto_login: true  # Anki起動時に自動ログイン
-    # ヘッドレスモードでの自動起動設定
-    headless:
-      enabled: false  # GUI環境ではfalse、サーバー環境ではtrue
-      xvfb_display: ":99"
-      xvfb_screen_size: "1024x768x16"
   
   # 内部API設定（将来のマイクロサービス化対応）
   generation:
     microservice:
-      enabled: false  # trueにするとマイクロサービス経由で実行
-      url: "http://localhost:8001"  # マイクロサービスのURL
+      enabled: false
+      url: "http://localhost:8001"
   
   ingest:
     microservice:
-      enabled: false  # trueにするとマイクロサービス経由で実行
-      url: "http://localhost:8002"  # マイクロサービスのURL
+      enabled: false
+      url: "http://localhost:8002"
 
 # Anki設定
 anki:
   note_type_name: "GMLE_MCQA"
   deck_bank_prefix: "GMLE::Bank::"
-  # カードテンプレート（高度なカスタマイズ用、オプション）
-  # nullの場合はデフォルトテンプレートを使用
   card_template:
     front: null
     back: null
@@ -69,16 +78,17 @@ http:
 
 # レート制限設定
 rate_limit:
-  enabled: true  # レート制限を有効化
-  requests_per_minute: 10  # 1分あたりの最大リクエスト数
-  requests_per_hour: 500  # 1時間あたりの最大リクエスト数
-  cooldown_seconds: 60  # レート制限到達時の待機時間（秒）
+  enabled: true
+  requests_per_minute: 1
+  requests_per_hour: 15
+  requests_per_day: 360
+  cooldown_seconds: 60
 
 # ログ設定
 logging:
   format: "human"  # human/json
   level: "INFO"    # DEBUG/INFO/WARNING/ERROR
-  file: null       # null=自動（data/<space>/logs/gmle-<date>.log）
+  file: null       # null=自動
   rotation_days: 30
 
 # ロック設定
@@ -91,7 +101,7 @@ ingest:
   excerpt_max: 800
   quarantine_min_length: 200
 
-# デフォルトパラメータ（Space設定で上書き可能）
+# デフォルトパラメータ
 params:
   total: 30
   new_total: 10
@@ -105,7 +115,6 @@ params:
   rationale_quote_max: 100
 
 # プロンプトテンプレート設定
-# GUIから編集可能
 prompts:
   stage1_extract:
     description: "Stage 1: 事実抽出プロンプト"
@@ -143,4 +152,3 @@ prompts:
           "quote": "元のテキストからの引用（100文字以内）"
         }}
       }}
-

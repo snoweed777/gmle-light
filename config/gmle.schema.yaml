@@ -1,4 +1,4 @@
-# GMLE+ 設定スキーマ定義
+# GMLE Light 設定スキーマ定義
 # GUIでのバリデーション用
 
 schema_version: "1.0"
@@ -101,46 +101,13 @@ api:
     connect_url:
       type: string
       format: uri
-      default: "http://127.0.0.1:8765"
-      description: "AnkiConnect URL"
+      default: "http://host.docker.internal:8765"
+      description: "AnkiConnect URL（Docker内からホストMacに接続）"
     
     connect_version:
       type: integer
       default: 6
       description: "AnkiConnectバージョン"
-    
-    auto_sync:
-      type: boolean
-      default: true
-      description: "AnkiWeb自動同期"
-    
-    ankiweb:
-      username:
-        type: string
-        nullable: true
-        default: null
-        description: "AnkiWebユーザー名（環境変数ANKIWEB_USERNAMEで上書き可能）"
-      
-      auto_login:
-        type: boolean
-        default: true
-        description: "Anki起動時に自動ログイン"
-    
-    headless:
-      enabled:
-        type: boolean
-        default: false
-        description: "ヘッドレスモード有効化"
-      
-      xvfb_display:
-        type: string
-        default: ":99"
-        description: "Xvfbディスプレイ番号"
-      
-      xvfb_screen_size:
-        type: string
-        default: "1024x768x16"
-        description: "Xvfb画面サイズ"
 
 # Anki設定定義
 anki:
@@ -263,4 +230,3 @@ ingest:
     maximum: 1000
     default: 200
     description: "Quarantine最小文字数"
-

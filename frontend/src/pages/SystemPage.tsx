@@ -16,7 +16,7 @@ const SERVICE_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  anki: "Ankiヘッドレスモード（AnkiConnect）",
+  anki: "ローカルMacのAnkiConnect（Docker外）",
   api: "REST APIサーバー（FastAPI/uvicorn）",
   gui: "GUI開発サーバー（Vite）",
 };

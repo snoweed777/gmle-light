@@ -1,6 +1,7 @@
-"""GMLE+ サービス停止
+"""GMLE Light サービス停止
 
 サービスの停止を行います。
+※ AnkiはローカルMacで管理するため、Docker内からは停止しません。
 """
 
 from __future__ import annotations
@@ -22,6 +23,14 @@ def stop_service(service_name: str) -> Dict[str, Any]:
             "name": service_name,
             "status": "error",
             "error": f"Unknown service: {service_name}",
+        }
+    
+    # Ankiはローカル管理のため、Docker内からは停止しない
+    if service_name == "anki":
+        return {
+            "name": service_name,
+            "status": "error",
+            "error": "Anki is managed locally on Mac. Please stop it manually.",
         }
     
     pid_file = PID_FILES.get(service_name)
@@ -53,15 +62,6 @@ def stop_service(service_name: str) -> Dict[str, Any]:
         if process_pattern is not None:
             subprocess.run(["pkill", "-f", process_pattern], capture_output=True)
         
-        if service_name == "anki":
-            xvfb_pid_file = PID_FILES.get("xvfb")
-            if xvfb_pid_file and os.path.exists(xvfb_pid_file):
-                xvfb_pid = get_pid(xvfb_pid_file)
-                if xvfb_pid and is_process_running(xvfb_pid):
-                    os.kill(xvfb_pid, 15)
-                if os.path.exists(xvfb_pid_file):
-                    os.remove(xvfb_pid_file)
-        
         return get_service_status(service_name)
     except Exception as e:
         return {
@@ -69,4 +69,3 @@ def stop_service(service_name: str) -> Dict[str, Any]:
             "status": "error",
             "error": f"Failed to stop: {e}",
         }
-

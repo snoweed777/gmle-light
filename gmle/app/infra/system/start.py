@@ -1,11 +1,11 @@
-"""GMLE+ サービス起動
+"""GMLE Light サービス起動
 
 サービスの起動を行います。
+※ AnkiはローカルMacで管理するため、Docker内からは起動しません。
 """
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -22,6 +22,14 @@ def start_service(service_name: str, scripts_dir: Path | None = None) -> Dict[st
             "name": service_name,
             "status": "error",
             "error": f"Unknown service: {service_name}",
+        }
+    
+    # Ankiはローカル管理のため、Docker内からは起動しない
+    if service_name == "anki":
+        return {
+            "name": service_name,
+            "status": "error",
+            "error": "Anki is managed locally on Mac. Please start Anki with AnkiConnect manually.",
         }
     
     current_status = get_service_status(service_name)
@@ -50,38 +58,12 @@ def start_service(service_name: str, scripts_dir: Path | None = None) -> Dict[st
                     "status": "error",
                     "error": f"Start script not found: {script}",
                 }
-            # Ankiの場合はnohupでバックグラウンド実行
-            if service_name == "anki":
-                # Ankiがインストールされているか事前確認
-                if not shutil.which("anki"):
-                    return {
-                        "name": service_name,
-                        "status": "error",
-                        "error": "Anki is not installed. Please run: bash scripts/setup/setup.sh",
-                    }
-                subprocess.Popen(
-                    ["nohup", "bash", str(script)],
-                    cwd=str(project_root),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-                # Ankiは起動に時間がかかるため、すぐに状態を返す
-                return {
-                    "name": service_name,
-                    "status": "stopped",
-                    "pid": None,
-                    "port": service_config.get("port"),
-                    "health_check": service_config.get("health_check"),
-                    "message": "Anki is starting in the background. Please check status in a few seconds.",
-                }
-            else:
-                subprocess.Popen(
-                    ["bash", str(script)],
-                    cwd=str(project_root),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+            subprocess.Popen(
+                ["bash", str(script)],
+                cwd=str(project_root),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         elif service_name == "gui":
             frontend_dir = project_root / "frontend"
             process = subprocess.Popen(
@@ -108,28 +90,7 @@ def start_service(service_name: str, scripts_dir: Path | None = None) -> Dict[st
             if status["status"] == "running":
                 return status
         
-        # タイムアウト後も起動していない場合、エラーログを確認
-        final_status = get_service_status(service_name)
-        if final_status["status"] != "running" and service_name == "anki":
-            # Ankiのログファイルを確認
-            log_file = Path.home() / ".local" / "share" / "Anki2" / "anki-headless.log"
-            if log_file.exists():
-                try:
-                    with open(log_file, "r") as f:
-                        log_lines = f.readlines()
-                        # 最後のエラーメッセージを取得
-                        for line in reversed(log_lines[-30:]):
-                            if "ERROR" in line or "Failed" in line or "not installed" in line:
-                                error_msg = line.strip()
-                                # タイムスタンプを除去してエラーメッセージのみを取得
-                                if "] " in error_msg:
-                                    error_msg = error_msg.split("] ", 1)[1]
-                                final_status["error"] = error_msg
-                                break
-                except Exception:
-                    pass
-        
-        return final_status
+        return get_service_status(service_name)
         
     except Exception as e:
         return {
@@ -137,4 +98,3 @@ def start_service(service_name: str, scripts_dir: Path | None = None) -> Dict[st
             "status": "error",
             "error": f"Failed to start: {e}",
         }
-

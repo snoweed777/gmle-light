@@ -1,6 +1,6 @@
 #!/bin/bash
-# GMLE+ サービス停止スクリプト（簡略版）
-# 共通ライブラリを使用してシンプルに実装
+# GMLE Light サービス停止スクリプト
+# GUI と API サービスを停止
 
 set -e
 
@@ -48,7 +48,7 @@ stop_service() {
 
 # メイン処理
 main() {
-    log "=== GMLE+ Shutdown ==="
+    log "=== GMLE Light Shutdown ==="
     
     # GUI停止
     stop_service "GUI" "$GUI_PID_FILE" "vite"
@@ -56,21 +56,7 @@ main() {
     # API停止
     stop_service "API" "$API_PID_FILE" "uvicorn.*gmle.app.api.rest.main"
     
-    # Anki停止（複数のPIDファイルをチェック）
-    if [ -f "/tmp/anki-headless.pid" ]; then
-        stop_service "Anki" "/tmp/anki-headless.pid" "anki"
-    fi
-    if [ -f "$ANKI_PID_FILE" ]; then
-        stop_service "Anki" "$ANKI_PID_FILE" "anki"
-    fi
-    
-    # Xvfb停止
-    if [ -f "$XVFB_PID_FILE" ]; then
-        stop_service "Xvfb" "$XVFB_PID_FILE" "Xvfb"
-    fi
-    
     log "=== Shutdown Complete ==="
 }
 
 main "$@"
-

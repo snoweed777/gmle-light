@@ -1,5 +1,6 @@
 /**
  * Configuration field descriptions and recommended values
+ * GMLE Light - Local Anki integration version
  */
 
 export interface FieldDescription {
@@ -60,42 +61,12 @@ export const apiDescriptions: Record<string, Record<string, FieldDescription>> =
   },
   anki: {
     connect_url: {
-      description: "AnkiConnect のURL（ローカルホスト）",
-      recommended: "http://127.0.0.1:8765",
+      description: "AnkiConnect のURL（Docker内からはhost.docker.internal:8765）",
+      recommended: "http://host.docker.internal:8765",
     },
     connect_version: {
       description: "AnkiConnect のAPIバージョン",
       recommended: 6,
-    },
-    auto_sync: {
-      description: "Anki の自動同期を有効化",
-      recommended: true,
-    },
-    ankiweb: {
-      username: {
-        description: "AnkiWebユーザー名（環境変数ANKIWEB_USERNAMEで上書き可能）",
-      },
-      password: {
-        description: "AnkiWebパスワード（暗号化されて保存されます）",
-      },
-      auto_login: {
-        description: "Anki起動時に自動ログイン",
-        recommended: true,
-      },
-    },
-    headless: {
-      enabled: {
-        description: "ヘッドレスモード（GUI無し）を有効化",
-        recommended: false,
-      },
-      xvfb_display: {
-        description: "仮想ディスプレイ番号",
-        recommended: ":99",
-      },
-      xvfb_screen_size: {
-        description: "仮想ディスプレイの解像度",
-        recommended: "1024x768x16",
-      },
     },
   },
   generation: {
@@ -199,4 +170,3 @@ export function getApiDescription(
 
   return categoryDesc[field];
 }
-

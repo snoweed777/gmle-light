@@ -1,6 +1,6 @@
 #!/bin/bash
-# GMLE+ サービス状態確認スクリプト（簡略版）
-# 共通ライブラリを使用してシンプルに実装
+# GMLE Light サービス状態確認スクリプト
+# GUI と API サービスの状態を確認
 
 set -e
 
@@ -43,39 +43,28 @@ check_service() {
     esac
 }
 
+# AnkiConnect接続確認（ローカルMac）
+check_anki_connect() {
+    echo -n "  AnkiConnect (Mac): "
+    
+    # host.docker.internal経由でMacのAnkiConnectに接続
+    local anki_url="http://host.docker.internal:8765"
+    if curl -sf --max-time 3 -X POST "$anki_url" \
+        -H "Content-Type: application/json" \
+        -d '{"action":"version","version":6}' > /dev/null 2>&1; then
+        echo "✅ Connected"
+    else
+        echo "❌ Not available (ensure Anki is running on Mac with AnkiConnect)"
+    fi
+}
+
 # メイン処理
 main() {
-    echo "=== GMLE+ Service Status ==="
+    echo "=== GMLE Light Service Status ==="
     echo ""
     
-    # Anki確認（複数のPIDファイルをチェック）
-    local anki_running=false
-    if [ -f "/tmp/anki-headless.pid" ]; then
-        local status
-        status=$(get_service_status "Anki" "/tmp/anki-headless.pid" "8765" "http://127.0.0.1:8765")
-        if [ "$status" = "running" ]; then
-            local pid
-            pid=$(validate_pid "/tmp/anki-headless.pid" 2>/dev/null)
-            echo "  Anki: ✅ Running (PID: ${pid})"
-            anki_running=true
-        else
-            check_service "Anki" "/tmp/anki-headless.pid" "8765" "http://127.0.0.1:8765"
-        fi
-    elif [ -f "$ANKI_PID_FILE" ]; then
-        local status
-        status=$(get_service_status "Anki" "$ANKI_PID_FILE" "8765" "http://127.0.0.1:8765")
-        if [ "$status" = "running" ]; then
-            anki_running=true
-        fi
-        check_service "Anki" "$ANKI_PID_FILE" "8765" "http://127.0.0.1:8765"
-    else
-        echo "  Anki: ❌ Not running"
-    fi
-    
-    # Xvfb確認（Ankiが起動している場合のみ）
-    if [ "$anki_running" = "true" ] && [ -f "$XVFB_PID_FILE" ]; then
-        check_service "Xvfb" "$XVFB_PID_FILE" "" ""
-    fi
+    # AnkiConnect確認（ローカルMac）
+    check_anki_connect
     
     echo ""
     
@@ -92,4 +81,3 @@ main() {
 }
 
 main "$@"
-
