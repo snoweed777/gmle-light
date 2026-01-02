@@ -24,11 +24,19 @@ def select_today(inputs: Dict[str, Any]) -> List[int]:
     active_notes = [n for n in base_notes if not _is_retired(n, retired_item_ids)]
     active_cards = [c for c in base_cards if c["note"] in {n["noteId"] for n in active_notes}]
 
-    reward = select_reward_pool(active_notes, yesterday_tag, params["reward_cap"])
+    # Get reward_cap with fallback to default value
+    reward_cap = params.get("reward_cap", 3)
+    reward = select_reward_pool(active_notes, yesterday_tag, reward_cap)
     exclude = set(reward)
 
+    # Get params with fallback defaults
+    maintain_total = params.get("maintain_total", 20)
+    new_total = params.get("new_total", 10)
+    total = params.get("total", 30)
+    domain_cap_steps = tuple(params.get("domain_cap_steps", [6, 7, 8, 9999]))
+
     due = select_due_pool(active_notes, active_cards, exclude)
-    exclude.update(due[:params["maintain_total"]])
+    exclude.update(due[:maintain_total])
 
     failed = select_failed_pool(active_notes, active_cards, exclude)
     exclude.update(failed)
@@ -38,24 +46,24 @@ def select_today(inputs: Dict[str, Any]) -> List[int]:
 
     fallback = select_fallback_pool(active_notes, exclude)
 
-    maintain_candidates = due[:params["maintain_total"]] + failed + low_stability
-    maintain = apply_domain_cap(maintain_candidates, active_notes, tuple(params["domain_cap_steps"]), params["maintain_total"])
+    maintain_candidates = due[:maintain_total] + failed + low_stability
+    maintain = apply_domain_cap(maintain_candidates, active_notes, domain_cap_steps, maintain_total)
 
     # For new, use remaining maintain_candidates + fallback
     new_candidates = maintain_candidates[len(maintain):] + fallback
-    new = apply_domain_cap(new_candidates, active_notes, tuple(params["domain_cap_steps"]), params["new_total"])
+    new = apply_domain_cap(new_candidates, active_notes, domain_cap_steps, new_total)
 
     # Ensure total reaches params["total"] by adding fallback if needed
     current_total = len(set(reward + maintain + new))
-    if current_total < params["total"]:
-        remaining_needed = params["total"] - current_total
+    if current_total < total:
+        remaining_needed = total - current_total
         current_set = set(reward + maintain + new)
         # Use all active notes that are not already selected
         all_active_note_ids = {n["noteId"] for n in active_notes}
         additional = [nid for nid in sorted(all_active_note_ids) if nid not in current_set][:remaining_needed]
         new.extend(additional)
 
-    today = list(set(reward + maintain + new))[:params["total"]]
+    today = list(set(reward + maintain + new))[:total]
     return sorted(today)
 
 

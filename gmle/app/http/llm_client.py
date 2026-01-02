@@ -22,6 +22,9 @@ def chat_completions(payload: Dict[str, Any], config: Dict[str, Any] | None = No
     elif active_provider == "groq":
         from gmle.app.http.groq_client import chat_completions as groq_chat_completions
         return groq_chat_completions(payload, config=config)
+    elif active_provider == "huggingface":
+        from gmle.app.http.huggingface_client import chat_completions as huggingface_chat_completions
+        return huggingface_chat_completions(payload, config=config)
     else:
         raise InfraError(f"Unknown LLM provider: {active_provider}")
 

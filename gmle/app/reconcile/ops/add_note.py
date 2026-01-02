@@ -32,6 +32,11 @@ def _build_fields(item: Dict[str, Any]) -> Dict[str, str]:
     import json
     source_url = item["source"].get("url") or ""
     meta_json = json.dumps(item["meta"], ensure_ascii=False) if item.get("meta") else "{}"
+    
+    # Handle rationale field variations (text, explain, or empty)
+    rationale = item.get("rationale", {})
+    rationale_explain = rationale.get("text") or rationale.get("explain", "")
+    
     return {
         "ID": item["id"],
         "Question": item["question"],
@@ -41,7 +46,7 @@ def _build_fields(item: Dict[str, Any]) -> Dict[str, str]:
         "ChoiceD": item["choices"][3],
         "Answer": item["answer"],
         "RationaleQuote": item["rationale"]["quote"],
-        "RationaleExplain": item["rationale"]["explain"],
+        "RationaleExplain": rationale_explain,
         "SourceTitle": item["source"]["title"],
         "SourceLocator": item["source"]["locator"],
         "SourceURL": source_url,

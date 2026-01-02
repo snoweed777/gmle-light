@@ -16,11 +16,11 @@ http:
   retry_backoff_base: 2
   timeout: 120
 ingest:
-  excerpt_max: 800
+  excerpt_max: 650
   excerpt_min: 200
   quarantine_min_length: 200
 llm:
-  active_provider: groq
+  active_provider: huggingface
   providers:
     cohere:
       api_url: https://api.cohere.ai/v1/chat
@@ -36,7 +36,7 @@ llm:
       - gemini-2.0-flash
       - gemini-1.5-pro
       - gemini-1.5-flash
-      default_model: gemini-2.5-flash
+      default_model: gemini-2.0-flash
     groq:
       api_url: https://api.groq.com/openai/v1
       available_models:
@@ -46,6 +46,15 @@ llm:
       - gemma-7b-it
       - gemma2-9b-it
       default_model: llama-3.3-70b-versatile
+    huggingface:
+      api_url: https://router.huggingface.co/v1
+      available_models:
+      - meta-llama/Llama-3.2-1B-Instruct
+      - meta-llama/Llama-3.2-3B-Instruct
+      - Qwen/Qwen2.5-72B-Instruct
+      - mistralai/Mistral-7B-Instruct-v0.3
+      - microsoft/Phi-3.5-mini-instruct
+      default_model: meta-llama/Llama-3.2-3B-Instruct
 lock:
   stale_seconds: 3600
 logging:
@@ -70,19 +79,20 @@ params:
   total: 30
 prompts:
   stage1_extract:
-    description: 'Stage 1: 事実抽出プロンプト'
-    template: "以下のテキストから重要な事実を日本語で抽出してください。\n各事実には、元のテキストからの引用（support_quote）を必ず含めてください。\n\
-      \n重要: すべての出力は日本語で記述してください。\n\n【テキスト】\n{excerpt}\n\n【出力形式】\nJSONフォーマットで返してください：\n\
-      {{\n  \"facts\": [\n    {{\"id\": \"f1\", \"text\": \"事実の内容（日本語）\", \"support_quote\": \"元のテキストからの引用\"\
-      }}\n  ]\n}}\n\n出力例：\n{{\n  \"facts\": [\n    {{\"id\": \"f1\", \"text\": \"Pythonは1991年にGuido van Rossumによって開発されたプログラミング言語です\", \"support_quote\": \"Python was created by Guido van Rossum in 1991\"}}\n  ]\n}}\n"
+    description: 'Stage 1: Fact extraction prompt (English for better LLM understanding)'
+    template: "Extract important facts from the following text.\n\nIMPORTANT: Write fact text in JAPANESE, but follow this JSON structure strictly.\n\n\
+      TEXT:\n{excerpt}\n\nRETURN STRICTLY in this JSON format (NO markdown, NO extra text):\n\
+      {{\n  \"facts\": [\n    {{\"id\": \"f1\", \"text\": \"<fact in Japanese>\", \"support_quote\": \"<quote from text>\"}}\n  ]\n}}\n\n\
+      REQUIRED fields:\n- id: fact identifier (f1, f2, ...)\n- text: fact description in JAPANESE\n- support_quote: exact quote from the original text\n\n\
+      Example:\n{{\n  \"facts\": [\n    {{\"id\": \"f1\", \"text\": \"Pythonは1991年にGuido van Rossumによって開発されたプログラミング言語です\", \"support_quote\": \"Python was created by Guido van Rossum in 1991\"}}\n  ]\n}}\n"
   stage2_build_mcq:
-    description: 'Stage 2: MCQ生成プロンプト'
-    template: "以下の事実から多肢選択問題（MCQ）を作成してください。\n\n重要な指示:\n- すべての問題文、選択肢、解説は必ず日本語で記述してください\n\
-      - 英語や他の言語は使用しないでください\n- 日本語として自然な表現を使用してください\n\n【事実】\n{facts}\n\n【出力形式】\n\
-      JSONフォーマットで返してください：\n{{\n  \"question\": \"問題文（日本語）\",\n  \"choices\": [\"A: 選択肢1（日本語）\", \"B: 選択肢2（日本語）\", \"C: 選択肢3（日本語）\", \"D: 選択肢4（日本語）\"],\n\
-      \  \"answer\": \"A\",\n  \"rationale\": {{\n    \"text\": \"解説文（日本語）\",\n    \"quote\": \"元のテキストからの引用（100文字以内）\"\n  }}\n}}\n\n\
-      出力例：\n{{\n  \"question\": \"Pythonが最初にリリースされた年はいつですか？\",\n  \"choices\": [\"A: 1989年\", \"B: 1991年\", \"C: 1995年\", \"D: 2000年\"],\n\
-      \  \"answer\": \"B\",\n  \"rationale\": {{\n    \"text\": \"Pythonは1991年にGuido van Rossumによって最初にリリースされました\",\n    \"quote\": \"Python was created by Guido van Rossum in 1991\"\n  }}\n}}\n"
+    description: 'Stage 2: MCQ generation prompt (English for better LLM understanding)'
+    template: "Create a multiple-choice question (MCQ) from the following facts.\n\n\
+      IMPORTANT: Write question, choices, and explanation in JAPANESE, but follow this JSON structure strictly.\n\n\
+      FACTS:\n{facts}\n\nRETURN STRICTLY in this JSON format (NO markdown, NO extra text):\n\
+      {{\n  \"question\": \"<question in Japanese>\",\n  \"choices\": [\"A: <choice 1 in Japanese>\", \"B: <choice 2 in Japanese>\", \"C: <choice 3 in Japanese>\", \"D: <choice 4 in Japanese>\"],\n  \"answer\": \"A\",\n  \"rationale\": {{\n    \"text\": \"<explanation in Japanese>\",\n    \"quote\": \"<quote from text, max 100 chars>\"\n  }}\n}}\n\n\
+      REQUIRED fields (ALL must be present):\n- question: question text in JAPANESE\n- choices: exactly 4 choices (A/B/C/D) in JAPANESE\n- answer: correct answer (must be A, B, C, or D)\n- rationale.text: explanation in JAPANESE\n- rationale.quote: exact quote from original text (max 100 characters)\n\n\
+      Example:\n{{\n  \"question\": \"Pythonが最初にリリースされた年はいつですか？\",\n  \"choices\": [\"A: 1989年\", \"B: 1991年\", \"C: 1995年\", \"D: 2000年\"],\n  \"answer\": \"B\",\n  \"rationale\": {{\n    \"text\": \"Pythonは1991年にGuido van Rossumによって最初にリリースされました\",\n    \"quote\": \"Python was created by Guido van Rossum in 1991\"\n  }}\n}}\n"
 rate_limit:
   burst_limit: 1
   call_type_limits:
@@ -105,6 +115,7 @@ rate_limit:
     cohere: 900
     gemini: 1400
     groq: 360
+    huggingface: 900
   requests_per_day: 360
   requests_per_hour: 15
   requests_per_minute: 1

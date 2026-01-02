@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 from gmle.app.ingest.refine import refine_source
 
 
-def ingest_textfile(file_path: str, title: str | None = None) -> List[Dict[str, Any]]:
+def ingest_textfile(file_path: str, title: str | None = None, config: Dict[str, Any] | None = None) -> List[Dict[str, Any]]:
     """Ingest from text file or docx (spec 21)."""
     path = Path(file_path)
     if not path.exists():
@@ -25,7 +25,7 @@ def ingest_textfile(file_path: str, title: str | None = None) -> List[Dict[str, 
         "domain_path": None,
     }
 
-    refined = refine_source(raw)
+    refined = refine_source(raw, config=config)
     return refined
 
 

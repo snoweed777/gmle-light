@@ -1,4 +1,4 @@
-"""Google AI Studio (Gemini) API client."""
+"""HuggingFace Inference API client."""
 
 from __future__ import annotations
 
@@ -17,56 +17,51 @@ load_dotenv()
 
 def _check_api_key_status_impl(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """Internal implementation of API key check (without rate limiting)."""
-    llm_config = get_llm_config(config)
-    provider_config = llm_config.get("provider_config", {})
-    api_url_base = provider_config.get("api_url") or "https://generativelanguage.googleapis.com/v1beta"
-    default_model = provider_config.get("default_model") or "gemini-1.5-flash"
-    
-    api_key = os.getenv("GOOGLE_AI_API_KEY")
+    api_key = os.getenv("HUGGINGFACE_API_KEY")
     if not api_key:
         return {
             "valid": False,
-            "error": "GOOGLE_AI_API_KEY not set",
+            "error": "HUGGINGFACE_API_KEY not set",
             "key_type": None,
             "has_quota": False,
         }
     
-    # Make a minimal test request
+    # Make a minimal test request using OpenAI-compatible endpoint
     import httpx
-    client = httpx.Client(timeout=10.0)
+    client = httpx.Client(timeout=30.0)
     try:
-        api_url = f"{api_url_base}/models/{default_model}:generateContent?key={api_key}"
-        resp = client.post(
-            api_url,
-            json={"contents": [{"parts": [{"text": "test"}]}]},
-        )
+        # Use HuggingFace Inference Providers endpoint (OpenAI-compatible)
+        api_url = "https://router.huggingface.co/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        # Minimal test request
+        payload = {
+            "model": "meta-llama/Llama-3.2-1B-Instruct",
+            "messages": [{"role": "user", "content": "Hi"}],
+            "max_tokens": 10,
+        }
+        
+        resp = client.post(api_url, headers=headers, json=payload)
         
         if resp.status_code == 200:
             return {
                 "valid": True,
                 "error": None,
-                "key_type": "free",  # Google AI Studio free tier
+                "key_type": "free",
                 "has_quota": True,
             }
         elif resp.status_code == 429:
-            # Rate limit - check if daily limit
-            error_text = resp.text.lower()
-            if "quota" in error_text or "limit" in error_text:
-                return {
-                    "valid": True,
-                    "error": "Daily quota limit reached",
-                    "key_type": "free",
-                    "has_quota": False,
-                    "error_detail": resp.text[:200],
-                }
-            else:
-                return {
-                    "valid": True,
-                    "error": "Rate limit (short-term)",
-                    "key_type": "free",
-                    "has_quota": True,
-                    "error_detail": resp.text[:200],
-                }
+            # Rate limit
+            return {
+                "valid": True,
+                "error": "Rate limit reached",
+                "key_type": "free",
+                "has_quota": False,
+                "error_detail": resp.text[:200],
+            }
         elif resp.status_code in (401, 403):
             return {
                 "valid": False,
@@ -94,12 +89,12 @@ def _check_api_key_status_impl(config: Dict[str, Any] | None = None) -> Dict[str
 
 
 def check_api_key_status(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
-    """Check Gemini API key status through unified gate."""
+    """Check HuggingFace API key status through unified gate."""
     from gmle.app.http.api_gate import get_unified_api_gate
     from gmle.app.config.getter import get_llm_config
     
     llm_config = get_llm_config(config)
-    provider = llm_config.get("active_provider", "gemini")
+    provider = llm_config.get("active_provider", "huggingface")
     
     # Check if we can make the call (but don't block if we can't)
     gate = get_unified_api_gate()
@@ -125,56 +120,52 @@ def check_api_key_status(config: Dict[str, Any] | None = None) -> Dict[str, Any]
 
 
 def _chat_completions_impl(payload: Dict[str, Any], config: Dict[str, Any] | None = None) -> Any:
-    """Internal implementation of Gemini API call (without rate limiting)."""
+    """Internal implementation of HuggingFace API call (without rate limiting)."""
     llm_config = get_llm_config(config)
     provider_config = llm_config.get("provider_config", {})
-    api_url_base = provider_config.get("api_url") or "https://generativelanguage.googleapis.com/v1beta"
-    default_model = provider_config.get("default_model") or "gemini-1.5-flash"
+    default_model = provider_config.get("default_model") or "meta-llama/Llama-3.2-3B-Instruct"
     
-    api_key = os.getenv("GOOGLE_AI_API_KEY")
+    api_key = os.getenv("HUGGINGFACE_API_KEY")
     if not api_key:
-        raise InfraError("GOOGLE_AI_API_KEY not set")
+        raise InfraError("HUGGINGFACE_API_KEY not set")
     
-    # Extract message from payload
+    # Extract messages from payload
     messages = payload.get("messages", [])
     if not messages:
         raise InfraError("messages array is required")
     
-    # Get the last user message content
-    message_content = ""
-    for msg in reversed(messages):
-        if msg.get("role") == "user":
-            message_content = msg.get("content", "")
-            break
-    
-    if not message_content:
-        raise InfraError("No user message found in messages array")
-    
     # Extract model from payload or use config default
     model = payload.get("model", default_model)
     
-    # Gemini API format
-    api_url = f"{api_url_base}/models/{model}:generateContent?key={api_key}"
-    gemini_payload = {
-        "contents": [{
-            "parts": [{"text": message_content}]
-        }]
+    # HuggingFace Inference Providers endpoint (OpenAI-compatible)
+    api_url = "https://router.huggingface.co/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
     }
     
-    response = request("POST", api_url, json=gemini_payload, config=config)
+    # OpenAI-compatible payload
+    hf_payload = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 2000,
+        "temperature": 0.7,
+    }
     
-    # Gemini API response format
+    response = request("POST", api_url, headers=headers, json=hf_payload, config=config)
+    
+    # OpenAI-compatible response format
     from gmle.app.http.json_parser import parse_llm_response
     return parse_llm_response(response)
 
 
 def chat_completions(payload: Dict[str, Any], config: Dict[str, Any] | None = None) -> Any:
-    """Call Gemini API generateContent through unified gate."""
+    """Call HuggingFace Inference API through unified gate."""
     from gmle.app.http.api_gate import get_unified_api_gate
     from gmle.app.config.getter import get_llm_config
     
     llm_config = get_llm_config(config)
-    provider = llm_config.get("active_provider", "gemini")
+    provider = llm_config.get("active_provider", "huggingface")
     
     gate = get_unified_api_gate()
     return gate.call(

@@ -48,29 +48,66 @@ def _normalize_excerpt(text: str) -> str:
     return unicodedata.normalize("NFKC", text).strip()
 
 
-def _split_excerpt(text: str, excerpt_min: int = 200, excerpt_max: int = 800) -> List[str]:
-    """Split/combine to excerpt_min-excerpt_max chars, 1論点化 (spec 21.2)."""
+def _split_excerpt(text: str, excerpt_min: int = 200, excerpt_max: int = 650) -> List[str]:
+    """Split/combine to excerpt_min-excerpt_max chars, 1論点化 (spec 21.2).
+    
+    Improved to strictly enforce excerpt_max limit with safety margin.
+    """
     if excerpt_min <= len(text) <= excerpt_max:
         return [text]
     if len(text) < excerpt_min:
         return []  # Too short, will be quarantined
+    
     chunks = []
     current = ""
+    
+    # Split by Japanese sentence delimiter
     for sentence in text.split("。"):
         if not sentence.strip():
             continue
         test_chunk = current + sentence + "。" if current else sentence + "。"
+        
+        # Strictly enforce excerpt_max limit
         if len(test_chunk) <= excerpt_max:
             current = test_chunk
         else:
+            # Save current chunk if it meets minimum requirement
             if current and len(current) >= excerpt_min:
                 chunks.append(current)
-            current = sentence + "。"
+            
+            # Handle single sentence that's too long
+            if len(sentence) > excerpt_max:
+                # Force split long sentence into excerpt_max chunks
+                sentence_with_period = sentence + "。"
+                for i in range(0, len(sentence_with_period), excerpt_max):
+                    chunk = sentence_with_period[i:i+excerpt_max]
+                    if len(chunk) >= excerpt_min:
+                        chunks.append(chunk)
+                current = ""
+            else:
+                current = sentence + "。"
+    
+    # Handle remaining text
     if current and len(current) >= excerpt_min:
-        chunks.append(current)
+        if len(current) <= excerpt_max:
+            chunks.append(current)
+        else:
+            # Force truncate if over max
+            chunks.append(current[:excerpt_max])
     elif current and len(chunks) > 0:
-        chunks[-1] = chunks[-1] + current
-    return chunks if chunks else [text[:excerpt_max]]
+        # Try to merge with last chunk if it won't exceed max
+        if len(chunks[-1] + current) <= excerpt_max:
+            chunks[-1] = chunks[-1] + current
+        else:
+            # Truncate and add as separate chunk if meets minimum
+            if len(current) >= excerpt_min:
+                chunks.append(current[:excerpt_max])
+    
+    # Fallback: if no chunks created, force split the text
+    if not chunks and len(text) >= excerpt_min:
+        chunks = [text[:excerpt_max]]
+    
+    return chunks
 
 
 def _generate_source_id(url: str, locator: str, excerpt: str) -> str:
